@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>数据报告</title>
+<style>
+html, body { margin:0; background:#0a1220; color:#eee; font-family:sans-serif;
+  display:flex; justify-content:center; padding:40px 0; min-height:100vh; }
+#box { width:700px; }
+h2 { color:#4a9eff; font-weight:normal; letter-spacing:2px; }
+.card { background:rgba(20,30,50,0.9); padding:28px; border-radius:14px; margin-bottom:20px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+.big { font-size:56px; color:#4a9eff; text-align:center; margin:20px 0;
+  font-family:'Courier New', monospace; text-shadow:0 0 20px rgba(74,158,255,0.4); }
+canvas { width:100%; height:200px; background:#0a1525; border-radius:10px; display:block; }
+.metrics { display:flex; justify-content:space-around; margin-top:20px; }
+.metrics div { text-align:center; }
+.metrics span { display:block; font-size:32px; color:#7ec8ff;
+  font-family:'Courier New', monospace; }
+.metrics label { font-size:13px; color:#888; letter-spacing:1px; }
+.aiLine { color:#7ec8ff; font-style:italic; margin-top:20px; font-size:14px;
+  line-height:1.8; padding-left:12px; border-left:2px solid #4a9eff; }
+button { margin-top:20px; padding:12px 30px; background:#4a9eff; color:#fff;
+  border:none; border-radius:8px; font-size:15px; cursor:pointer; letter-spacing:1px; }
+button:hover { background:#5fb0ff; }
+</style></head>
+<body>
+<div id="box">
+  <h2>数 据 报 告</h2>
+
+  <div class="card">
+    <div class="big" id="riBig">RI = --</div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="metrics">
+      <div><span id="rsAvg">--</span><label>重构速度 RS</label></div>
+      <div><span id="cdrisc">--</span><label>CD-RISC-10</label></div>
+      <div><span id="prAvg">--</span><label>主观弹性感知 PR</label></div>
+    </div>
+    <div class="aiLine" id="aiLine"></div>
+  </div>
+
+  <button onclick="window.location.href='./index.html'">返回航线地图</button>
+</div>
+<script>
+const lastRI = parseInt(localStorage.getItem('lastRI') || '0');
+document.getElementById('riBig').textContent = 'RI = ' + lastRI;
+
+// 模拟历史数据 + 最近一次
+const history = [35, 38, 42, 45, 47, lastRI].filter(v => v > 0);
+
+// 画折线图
+const canvas = document.getElementById('chart');
+canvas.width = canvas.offsetWidth * 2;
+canvas.height = 400;
+const ctx = canvas.getContext('2d');
+ctx.scale(2, 2);
+const w = canvas.offsetWidth, h = 200;
+const max = Math.max(...history, 100), min = Math.min(...history, 0);
+
+// 网格
+ctx.strokeStyle = 'rgba(74,158,255,0.1)';
+ctx.lineWidth = 1;
+for (let i = 0; i <= 4; i++) {
+  const y = 20 + (h - 40) * i / 4;
+  ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(w - 20, y); ctx.stroke();
+}
+
+// 折线
+ctx.strokeStyle = '#4a9eff';
+ctx.lineWidth = 2;
+ctx.beginPath();
+history.forEach((v, i) => {
+  const x = (i / (history.length - 1)) * (w - 40) + 20;
+  const y = h - ((v - min) / (max - min)) * (h - 40) - 20;
+  i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+});
+ctx.stroke();
+
+// 数据点
+history.forEach((v, i) => {
+  const x = (i / (history.length - 1)) * (w - 40) + 20;
+  const y = h - ((v - min) / (max - min)) * (h - 40) - 20;
+  ctx.fillStyle = '#7ec8ff';
+  ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+});
+
+document.getElementById('rsAvg').textContent = (12 - lastRI * 0.1).toFixed(1) + 's';
+document.getElementById('cdrisc').textContent = 62 + Math.floor(lastRI * 0.15);
+document.getElementById('prAvg').textContent = 5 + Math.floor(lastRI * 0.04);
+document.getElementById('aiLine').textContent =
+  '你看，这不是我夸你——这是你自己飞出来的。六周前你跟我说"我永远改不了一紧张就脑子空白"，现在你在发动机失效的警报里，' + (12 - lastRI * 0.1).toFixed(1) + ' 秒就能重新看仪表了。';
+</script></body></html>

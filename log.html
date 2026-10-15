@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>飞行日志</title>
+<style>
+html, body { margin:0; background:#0a1220; color:#eee; font-family:sans-serif;
+  display:flex; justify-content:center; padding:40px 0; min-height:100vh; }
+#box { width:640px; }
+h2 { color:#4a9eff; font-weight:normal; letter-spacing:2px; }
+.card { background:rgba(20,30,50,0.9); padding:24px; border-radius:14px; margin-bottom:20px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+.card h3 { color:#7ec8ff; font-size:16px; margin-top:0; font-weight:normal; letter-spacing:1px; }
+textarea { width:100%; height:90px; background:#0a1525; color:#eee; border:1px solid #2a3a55;
+  border-radius:8px; padding:12px; font-size:14px; resize:vertical; box-sizing:border-box;
+  font-family:inherit; }
+textarea:focus { outline:none; border-color:#4a9eff; }
+select, button { padding:10px 20px; background:#4a9eff; color:#fff; border:none;
+  border-radius:8px; font-size:14px; cursor:pointer; margin-top:12px; letter-spacing:1px; }
+select { background:#1a2a44; }
+button:hover { background:#5fb0ff; }
+button:disabled { background:#2a3a55; cursor:not-allowed; }
+#logList { margin-top:20px; }
+.logItem { background:rgba(30,40,60,0.7); padding:14px 18px; border-radius:10px;
+  margin-bottom:10px; font-size:14px; line-height:1.6; border-left:3px solid #4a9eff; }
+.logItem .time { color:#888; font-size:12px; margin-bottom:6px; }
+#aiMsg { color:#7ec8ff; font-style:italic; margin-top:14px; font-size:14px;
+  line-height:1.7; padding-left:12px; border-left:2px solid #4a9eff; min-height:20px; }
+#aiMsg.loading::after { content:'…'; animation:dots 1s infinite; }
+@keyframes dots { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+</style></head>
+<body>
+<div id="box">
+  <h2>飞 行 日 志</h2>
+
+  <div class="card">
+    <h3>今天是什么时段？</h3>
+    <select id="phase">
+      <option value="航前 · 准备出发">航前 · 准备出发</option>
+      <option value="航后 · 刚落地">航后 · 刚落地</option>
+      <option value="驻外 · 一个人在酒店">驻外 · 一个人在酒店</option>
+      <option value="休息日 · 有完整时间">休息日 · 有完整时间</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h3>此刻你的状态</h3>
+    <textarea id="mood" placeholder="写两句话就好。今天发生了什么？你现在的感觉是什么？"></textarea>
+    <button id="saveBtn" onclick="saveLog()">记 录</button>
+    <div id="aiMsg"></div>
+  </div>
+
+  <div id="logList"></div>
+
+  <button onclick="window.location.href='./report.html'">查看数据报告</button>
+</div>
+<script>
+const API_KEY = localStorage.getItem('deepseekKey') || '';
+const API_URL = 'https://api.deepseek.com/chat/completions';
+
+async function askAI(phase, mood) {
+  if (!API_KEY) {
+    return '（未检测到 API key，请先在 ai-test.html 里输入并测试一次）';
+  }
+
+  const systemPrompt = `你是飞行员"心航 MindFlight"平台的AI教练，代号"重构引导者"。你说话温和、简短、专业，不说教，不贴标签，不给诊断。你的职责是：在飞行员写下情绪日志后，用一两句话回应他，引导他做一次轻微的认知重评或觉察。禁止使用"问题""异常""症状"等标签化词语，代之以"状态""弹性""成长"。回复不超过80字。`;
+
+  const userPrompt = `时段：${phase}\n飞行员写道：${mood}\n\n请用一到两句话回应他。`;
+
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + API_KEY
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 200
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices[0].message.content;
+}
+
+async function saveLog() {
+  const phase = document.getElementById('phase').value;
+  const mood = document.getElementById('mood').value.trim();
+  const aiMsg = document.getElementById('aiMsg');
+
+  if (!mood) { alert('写两句话再记录吧'); return; }
+
+  const logs = JSON.parse(localStorage.getItem('logs') || '[]');
+  logs.unshift({ phase, mood, time: new Date().toLocaleString() });
+  localStorage.setItem('logs', JSON.stringify(logs));
+
+  document.getElementById('mood').value = '';
+  renderLogs();
+
+  aiMsg.classList.add('loading');
+  aiMsg.textContent = 'AI 教练正在回应';
+  document.getElementById('saveBtn').disabled = true;
+
+  try {
+    const reply = await askAI(phase, mood);
+    aiMsg.classList.remove('loading');
+    aiMsg.textContent = 'AI 教练：' + reply;
+  } catch (err) {
+    aiMsg.classList.remove('loading');
+    aiMsg.textContent = 'AI 教练暂时无法回应：' + err.message;
+  } finally {
+    document.getElementById('saveBtn').disabled = false;
+  }
+}
+
+function renderLogs() {
+  const logs = JSON.parse(localStorage.getItem('logs') || '[]');
+  document.getElementById('logList').innerHTML = logs.map(l =>
+    `<div class="logItem"><div class="time">${l.time} · ${l.phase}</div>${l.mood}</div>`
+  ).join('');
+}
+renderLogs();
+</script></body></html>

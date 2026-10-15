@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>心航 · 驾驶舱</title>
+<style>
+html, body { margin:0; overflow:hidden; font-family:sans-serif; background:#000; }
+canvas { display:block; }
+
+#topPanel { position:fixed; top:0; left:0; right:0; height:10vh;
+  background:linear-gradient(#050505, #1a1a1a);
+  border-bottom:2px solid #2a2a2a; box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  z-index:10; pointer-events:none; }
+#leftPillar, #rightPillar { position:fixed; top:10vh; bottom:22vh; width:5vw;
+  background:linear-gradient(90deg, #0a0a0a, #1a1a1a);
+  z-index:10; pointer-events:none; }
+#leftPillar { left:0; border-right:2px solid #2a2a2a; }
+#rightPillar { right:0; border-left:2px solid #2a2a2a;
+  background:linear-gradient(90deg, #1a1a1a, #0a0a0a); }
+#dashboard { position:fixed; bottom:0; left:0; right:0; height:22vh;
+  background:linear-gradient(#0a0a0a, #050505);
+  border-top:2px solid #2a2a2a; z-index:10;
+  display:flex; justify-content:center; align-items:center; gap:20px;
+  padding:14px 40px; box-shadow:0 -10px 30px rgba(0,0,0,0.7); }
+#glassReflect { position:fixed; top:10vh; left:5vw; right:5vw; bottom:22vh;
+  background:linear-gradient(135deg, rgba(255,255,255,0.06) 0%,
+    rgba(255,255,255,0.01) 20%, transparent 40%, transparent 60%,
+    rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.05) 100%);
+  pointer-events:none; z-index:11; }
+
+#glassRain {
+  position:fixed; top:10vh; left:5vw; right:5vw; bottom:22vh;
+  opacity:0; transition:opacity 1.2s; pointer-events:none; z-index:12;
+  background-image:
+    radial-gradient(circle at 12% 25%, rgba(180,200,220,0.35) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 28% 15%, rgba(180,200,220,0.3) 0.6px, transparent 1.8px),
+    radial-gradient(circle at 42% 32%, rgba(180,200,220,0.35) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 58% 12%, rgba(180,200,220,0.3) 0.7px, transparent 2px),
+    radial-gradient(circle at 72% 28%, rgba(180,200,220,0.32) 0.6px, transparent 1.8px),
+    radial-gradient(circle at 88% 18%, rgba(180,200,220,0.35) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 18% 58%, rgba(180,200,220,0.3) 0.6px, transparent 1.8px),
+    radial-gradient(circle at 38% 68%, rgba(180,200,220,0.35) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 62% 52%, rgba(180,200,220,0.3) 0.7px, transparent 2px),
+    radial-gradient(circle at 82% 62%, rgba(180,200,220,0.32) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 8% 78%, rgba(180,200,220,0.3) 0.6px, transparent 1.8px),
+    radial-gradient(circle at 48% 88%, rgba(180,200,220,0.35) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 78% 82%, rgba(180,200,220,0.3) 0.6px, transparent 1.8px);
+  background-size: 100% 100%;
+}
+#glassRain.active { opacity:0.7; }
+
+#topLights { position:fixed; top:2.5vh; left:50%; transform:translateX(-50%);
+  display:flex; gap:20px; z-index:12; }
+.indicator { width:10px; height:10px; border-radius:50%;
+  background:#222; border:1px solid #444; box-shadow:inset 0 0 4px #000; transition:all 0.3s; }
+#ind1 { background:#0a4a2a; box-shadow:0 0 6px #0a4a2a; }
+#ind2 { background:#4a3a0a; box-shadow:0 0 6px #4a3a0a; }
+#ind3 { background:#0a1a4a; box-shadow:0 0 6px #0a1a4a; }
+#ind4 { background:#2a2a2a; }
+
+#abcCorner { position:fixed; bottom:26vh; right:2vw; z-index:19;
+  display:flex; gap:6px; opacity:0.35; transition:opacity 0.3s; }
+#abcCorner .abc-mini { width:26px; height:26px; border-radius:50%;
+  border:1px solid #4a9eff; color:#4a9eff; font-size:13px; font-weight:bold;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Courier New', monospace; }
+#abcCorner.active { opacity:1; }
+#abcCorner.active .abc-mini { animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+
+.instrument { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.instrument .label { font-size:11px; color:#777; letter-spacing:2px; }
+.attitude { width:90px; height:90px; border-radius:50%;
+  position:relative; overflow:hidden;
+  border:2px solid #444; background:#001a33;
+  box-shadow:inset 0 0 15px rgba(0,0,0,0.8); }
+.attitude-inner { position:absolute; width:100%; height:200%; top:-50%;
+  transition:transform 0.08s linear; }
+.sky-half { height:50%; background:linear-gradient(#1e5b8a, #6fa8d0); }
+.ground-half { height:50%; background:linear-gradient(#8a6030, #3a2410); }
+.horizon-line { position:absolute; top:50%; left:0; right:0; height:2px; background:#fff; }
+.plane-symbol { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:34px; height:3px; background:#ffcc00; border-radius:2px; }
+.plane-symbol::before { content:''; position:absolute; top:-3px; left:50%; transform:translateX(-50%);
+  width:3px; height:9px; background:#ffcc00; }
+.digital { width:100px; height:70px;
+  background:#0a1525; border:2px solid #2a3a55; border-radius:8px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  box-shadow:inset 0 0 10px rgba(0,80,150,0.3); }
+.digital .value { font-size:28px; color:#4aff8a; font-family:'Courier New', monospace;
+  font-weight:bold; text-shadow:0 0 8px rgba(74,255,138,0.6); transition:color 0.3s; }
+.digital .value.warn { color:#ffcc00; text-shadow:0 0 8px rgba(255,204,0,0.6); }
+.digital .value.danger { color:#ff3333; text-shadow:0 0 8px rgba(255,51,51,0.6); }
+.digital .unit { font-size:11px; color:#4a8a5a; }
+.throttle { width:100px; height:70px;
+  background:#0a1525; border:2px solid #2a3a55; border-radius:8px;
+  padding:8px; display:flex; flex-direction:column; gap:4px; }
+.throttle-bar { height:10px; background:#1a2a44; border-radius:4px; overflow:hidden; position:relative; }
+.throttle-fill { height:100%; width:0%;
+  background:linear-gradient(90deg, #4aff8a, #ffcc00); transition:width 0.15s; }
+.throttle-target { position:absolute; top:0; bottom:0; width:2px;
+  background:#4a9eff; box-shadow:0 0 6px #4a9eff; transition:left 0.2s; }
+.throttle .value { font-size:16px; color:#4aff8a; text-align:center;
+  font-family:'Courier New', monospace; }
+#warnLights { display:flex; gap:8px; margin-top:6px; justify-content:center; }
+.warnLight { width:14px; height:14px; border-radius:50%;
+  background:#2a0a0a; border:1px solid #444; transition:all 0.2s; }
+.warnLight.active { background:#ff2222;
+  box-shadow:0 0 12px #ff2222, 0 0 24px #ff2222;
+  animation:lightBlink 0.4s infinite; }
+@keyframes lightBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.cockpitBtn { width:80px; height:70px;
+  background:#0a1525; border:2px solid #2a3a55; border-radius:8px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  cursor:pointer; transition:all 0.2s;
+  box-shadow:inset 0 0 10px rgba(0,80,150,0.3); user-select:none; }
+.cockpitBtn:hover { border-color:#4a9eff; }
+.cockpitBtn:active { transform:scale(0.95); }
+.cockpitBtn .btn-label { font-size:10px; color:#777; letter-spacing:1px; margin-bottom:4px; }
+.cockpitBtn .btn-value { font-size:16px; color:#7ec8ff; font-family:'Courier New', monospace;
+  font-weight:bold; letter-spacing:1px; }
+.cockpitBtn.active { border-color:#4aff8a; box-shadow:inset 0 0 15px rgba(74,255,138,0.3); }
+.cockpitBtn.active .btn-value { color:#4aff8a; }
+.cockpitBtn.warn { border-color:#ffcc00; box-shadow:inset 0 0 15px rgba(255,204,0,0.3); }
+.cockpitBtn.warn .btn-value { color:#ffcc00; }
+
+#stability { position:fixed; top:14vh; left:50%; transform:translateX(-50%);
+  color:#4aff8a; font-size:12px; letter-spacing:3px;
+  background:rgba(0,0,0,0.5); padding:4px 16px; border-radius:12px;
+  z-index:20; transition:all 0.3s; }
+#stability.warn { color:#ffcc00; }
+#stability.danger { color:#ff3333; }
+
+#hint { position:fixed; top:12vh; left:50%; transform:translateX(-50%); color:#fff;
+  background:rgba(0,0,0,0.55); padding:6px 18px; border-radius:16px; font-size:12px;
+  z-index:20; letter-spacing:1px; line-height:1.7; text-align:center; }
+#ai { position:fixed; bottom:24vh; left:7vw; background:rgba(20,30,50,0.9); color:#eee;
+  padding:12px 18px; border-radius:10px; max-width:340px; font-size:14px;
+  line-height:1.6; z-index:20; transition:opacity 0.5s; border-left:3px solid #4a9eff; }
+#flashWhite { position:fixed; top:0; left:0; width:100%; height:100%; background:#fff;
+  opacity:0; pointer-events:none; z-index:90; }
+#flashBlue { position:fixed; top:0; left:0; width:100%; height:100%;
+  background:radial-gradient(ellipse at 30% 20%, rgba(140,180,255,0.5) 0%, transparent 60%);
+  opacity:0; pointer-events:none; z-index:88; }
+#flashRed { position:fixed; top:0; left:0; width:100%; height:100%;
+  box-shadow:inset 0 0 200px 60px rgba(255,0,0,0.9); opacity:0;
+  pointer-events:none; transition:opacity 0.3s; z-index:75; }
+
+#calm { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.94); color:#fff; padding:36px 40px; border-radius:14px;
+  text-align:center; z-index:100; max-width:480px; border:1px solid #4a9eff;
+  box-shadow:0 0 40px rgba(74,158,255,0.4); }
+#calmSilent h3 { color:#4a9eff; margin-top:0; font-weight:normal; letter-spacing:3px;
+  font-size:16px; margin-bottom:20px; }
+.abc-mini-row { display:flex; justify-content:center; gap:14px; margin:20px 0; }
+.abc-mini-row .abc-mini { width:44px; height:44px; border-radius:50%;
+  border:2px solid #4a9eff; color:#4a9eff; font-size:20px; font-weight:bold;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Courier New', monospace; }
+#calmSilent p { color:#aaa; font-size:13px; line-height:1.7; }
+#calmSilent .btns { display:flex; gap:12px; margin-top:24px; justify-content:center; }
+#calmSilent button { padding:12px 28px; border:none; border-radius:8px;
+  font-size:14px; cursor:pointer; letter-spacing:1px; transition:all 0.2s; }
+#btnSelf { background:transparent; color:#4a9eff; border:1px solid #4a9eff !important; }
+#btnSelf:hover { background:rgba(74,158,255,0.1); }
+#btnGuide { background:#4a9eff; color:#fff; }
+#btnGuide:hover { background:#5fb0ff; }
+#calmCountdown { color:#ffcc00; font-size:12px; margin-top:14px; letter-spacing:2px; }
+
+#calmGuided h3 { color:#4a9eff; margin-top:0; font-weight:normal; letter-spacing:3px;
+  font-size:16px; margin-bottom:20px; }
+#abcCircle { width:160px; height:160px; margin:0 auto 20px;
+  border-radius:50%; border:3px solid #4a9eff;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:radial-gradient(circle, rgba(74,158,255,0.12) 0%, transparent 70%);
+  transition:all 1s ease-in-out; }
+#abcLetter { font-size:48px; font-weight:bold; color:#7ec8ff;
+  font-family:'Courier New', monospace; line-height:1; transition:color 0.5s; }
+#abcLabel { font-size:12px; color:#7ec8ff; letter-spacing:3px;
+  margin-top:8px; transition:color 0.5s; }
+#abcCircle.step-A { transform:scale(1.1); border-color:#4a9eff;
+  background:radial-gradient(circle, rgba(74,158,255,0.2) 0%, transparent 70%); }
+#abcCircle.step-A #abcLetter, #abcCircle.step-A #abcLabel { color:#4a9eff; }
+#abcCircle.step-B-inhale { transform:scale(1.4); border-color:#7ec8ff;
+  background:radial-gradient(circle, rgba(126,200,255,0.35) 0%, transparent 70%); }
+#abcCircle.step-B-inhale #abcLetter, #abcCircle.step-B-inhale #abcLabel { color:#7ec8ff; }
+#abcCircle.step-B-hold { transform:scale(1.4); border-color:#ffcc00;
+  background:radial-gradient(circle, rgba(255,204,0,0.3) 0%, transparent 70%);
+  transition:all 0.5s ease-in-out; }
+#abcCircle.step-B-hold #abcLetter, #abcCircle.step-B-hold #abcLabel { color:#ffcc00; }
+#abcCircle.step-B-exhale { transform:scale(0.85); border-color:#4aff8a;
+  background:radial-gradient(circle, rgba(74,255,138,0.25) 0%, transparent 70%);
+  transition:all 4s ease-in-out; }
+#abcCircle.step-B-exhale #abcLetter, #abcCircle.step-B-exhale #abcLabel { color:#4aff8a; }
+#abcCircle.step-C { transform:scale(1.05); border-color:#4aff8a;
+  background:radial-gradient(circle, rgba(74,255,138,0.2) 0%, transparent 70%); }
+#abcCircle.step-C #abcLetter, #abcCircle.step-C #abcLabel { color:#4aff8a; }
+#calmText { line-height:1.9; font-size:14px; color:#ccc; min-height:44px;
+  margin:16px 0 4px 0; }
+#calmStepHint { font-size:12px; color:#888; letter-spacing:1px; margin-bottom:20px; }
+#calmGuided button { margin-top:8px; padding:12px 32px; background:#4CAF50; color:#fff;
+  border:none; border-radius:8px; font-size:15px; cursor:pointer; letter-spacing:1px; }
+#calmGuided button:hover { background:#5fc463; }
+
+.alertText { position:fixed; color:#ff3333; font-size:20px; font-weight:bold;
+  text-shadow:0 0 12px #ff0000; display:none; z-index:85;
+  animation:blink 0.6s infinite; letter-spacing:2px; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.15;} }
+
+#review { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(5,10,20,0.96); color:#eee; z-index:200;
+  flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+#review h2 { color:#4a9eff; font-size:26px; margin-bottom:10px; font-weight:normal; letter-spacing:3px; }
+#review .ri { font-size:64px; color:#4a9eff; margin:24px 0;
+  font-family:'Courier New', monospace; text-shadow:0 0 20px rgba(74,158,255,0.5); }
+#review .metrics { display:flex; gap:50px; margin:24px 0; }
+#review .metrics div { text-align:center; }
+#review .metrics span { display:block; font-size:28px; color:#7ec8ff;
+  font-family:'Courier New', monospace; }
+#review .metrics label { font-size:13px; color:#888; letter-spacing:1px; }
+#review p { color:#aaa; max-width:500px; line-height:1.8; }
+#review button { margin-top:30px; padding:12px 40px; background:#4a9eff; color:#fff;
+  border:none; border-radius:8px; font-size:16px; cursor:pointer; letter-spacing:1px; }
+#recoveryTag { font-size:13px; color:#7ec8ff; margin-top:8px; letter-spacing:1px; }
+
+#stressPanel { position:fixed; top:2vh; right:2vw; z-index:15;
+  display:flex; flex-direction:column; gap:8px;
+  background:rgba(0,0,0,0.5); padding:10px 14px; border-radius:10px;
+  font-size:12px; color:#aaa; }
+#stressPanel > span { letter-spacing:2px; font-size:11px; color:#666; }
+.levels { display:flex; gap:4px; }
+.level-btn { padding:5px 12px; background:#1a2a44; color:#888;
+  border:1px solid #2a3a55; border-radius:6px; cursor:pointer; font-size:12px; }
+.level-btn:hover { color:#ccc; }
+.level-btn.active { background:#4a9eff; color:#fff; border-color:#4a9eff; }
+#pauseBtn { padding:5px 12px; background:transparent; color:#aaa;
+  border:1px solid #444; border-radius:6px; cursor:pointer; font-size:12px; letter-spacing:2px; }
+#pauseBtn:hover { color:#fff; border-color:#4a9eff; }
+#pauseBtn.paused { background:#4a3a0a; color:#ffcc00; border-color:#ffcc00; }
+#pauseOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.75); z-index:99;
+  flex-direction:column; justify-content:center; align-items:center; color:#eee; }
+#pauseOverlay h2 { color:#4a9eff; font-weight:normal; letter-spacing:4px; font-size:24px; }
+#pauseOverlay p { color:#888; margin-top:14px; letter-spacing:1px; }
+</style></head>
+<body>
+
+<div id="topPanel"></div>
+<div id="leftPillar"></div>
+<div id="rightPillar"></div>
+<div id="glassReflect"></div>
+<div id="glassRain"></div>
+<div id="topLights">
+  <div class="indicator" id="ind1"></div>
+  <div class="indicator" id="ind2"></div>
+  <div class="indicator" id="ind3"></div>
+  <div class="indicator" id="ind4"></div>
+</div>
+
+<div id="abcCorner">
+  <div class="abc-mini">A</div>
+  <div class="abc-mini">B</div>
+  <div class="abc-mini">C</div>
+</div>
+
+<div id="dashboard">
+  <div class="instrument">
+    <div class="attitude">
+      <div class="attitude-inner" id="attitudeInner">
+        <div class="sky-half"></div>
+        <div class="ground-half"></div>
+        <div class="horizon-line"></div>
+      </div>
+      <div class="plane-symbol"></div>
+    </div>
+    <div class="label">姿态</div>
+  </div>
+  <div class="instrument">
+    <div class="digital"><div class="value" id="spdVal">0</div><div class="unit">空速 KT</div></div>
+  </div>
+  <div class="instrument">
+    <div class="digital"><div class="value" id="altVal">640</div><div class="unit">高度 FT</div></div>
+  </div>
+  <div class="instrument">
+    <div class="throttle">
+      <div class="value" id="thrVal">0%</div>
+      <div class="throttle-bar">
+        <div class="throttle-fill" id="thrFill" style="width:0%"></div>
+        <div class="throttle-target" id="thrTarget" style="left:50%"></div>
+      </div>
+      <div id="warnLights">
+        <div class="warnLight" id="warn1"></div>
+        <div class="warnLight" id="warn2"></div>
+        <div class="warnLight" id="warn3"></div>
+      </div>
+    </div>
+  </div>
+  <div class="instrument">
+    <div class="cockpitBtn" id="flapBtn" onclick="cycleFlaps()">
+      <div class="btn-label">襟翼</div>
+      <div class="btn-value" id="flapVal">收起</div>
+    </div>
+    <div class="label">F 键</div>
+  </div>
+  <div class="instrument">
+    <div class="cockpitBtn" id="gearBtn" onclick="toggleGear()">
+      <div class="btn-label">起落架</div>
+      <div class="btn-value" id="gearVal">收起</div>
+    </div>
+    <div class="label">G 键</div>
+  </div>
+</div>
+
+<div id="stressPanel">
+  <span>压力强度</span>
+  <div class="levels">
+    <button class="level-btn" data-level="1">低</button>
+    <button class="level-btn active" data-level="2">中</button>
+    <button class="level-btn" data-level="3">高</button>
+  </div>
+  <button id="pauseBtn" onclick="togglePause()">暂停</button>
+</div>
+
+<div id="hint">
+  W/S 俯仰 · A/D 滚转 · Q/E 偏航 · Shift 加油门 · Ctrl 减油门 · F 襟翼 · G 起落架<br>
+  <span style="color:#4aff8a;">压力来时：A 稳住 · B 呼吸 · C 检查</span>
+</div>
+<div id="stability">稳 定 巡 航</div>
+<div id="ai">AI 副驾驶：注意姿态，先稳住坡度。</div>
+
+<svg id="lightningSvg" style="position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:89;opacity:0;transition:opacity 0.05s;">
+  <polyline id="lightningLine" points="" fill="none" stroke="#ffffff"
+    stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline id="lightningLine2" points="" fill="none" stroke="#cceeff"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+</svg>
+
+<div id="flashWhite"></div>
+<div id="flashBlue"></div>
+<div id="flashRed"></div>
+<div class="alertText" id="alert1" style="top:18%; left:12%;">⚠ 发动机失效</div>
+<div class="alertText" id="alert2" style="top:30%; right:14%;">⚠ 空速过低</div>
+<div class="alertText" id="alert3" style="bottom:28%; left:18%;">⚠ 高度下降</div>
+
+<div id="calm">
+  <div id="calmSilent">
+    <h3>你 现 在 可 以 怎 么 做 ？</h3>
+    <div class="abc-mini-row">
+      <div class="abc-mini">A</div>
+      <div class="abc-mini">B</div>
+      <div class="abc-mini">C</div>
+    </div>
+    <p>按你自己的方式处理。<br>系统正在记录你的恢复过程。</p>
+    <div class="btns">
+      <button id="btnSelf" onclick="chooseSelf()">我 自 己 来</button>
+      <button id="btnGuide" onclick="chooseGuide()">带 我 做 一 遍</button>
+    </div>
+    <div id="calmCountdown">5 秒后自动展开引导</div>
+  </div>
+  <div id="calmGuided" style="display:none;">
+    <h3>ABC 惊 讶 管 理</h3>
+    <div id="abcCircle">
+      <div id="abcLetter">A</div>
+      <div id="abcLabel">AVIATE</div>
+    </div>
+    <p id="calmText">先稳住姿态。不要动推杆。</p>
+    <div id="calmStepHint">A — 飞行操纵优先 · B — 呼吸调节 · C — 检查与排查</div>
+    <button onclick="closeCalm()">我准备好了，继续飞行</button>
+  </div>
+</div>
+
+<div id="review">
+  <h2>航 段 复 盘</h2>
+  <p id="reviewText">我们来看看刚才发生了什么。</p>
+  <div id="recoveryTag"></div>
+  <div class="ri" id="riScore">RI = 0</div>
+  <div class="metrics">
+    <div><span id="rsVal">0s</span><label>重构速度 RS</label></div>
+    <div><span id="rqVal">0</span><label>重构质量 RQ</label></div>
+    <div><span id="rstVal">0</span><label>重构稳定性 RSt</label></div>
+  </div>
+  <button onclick="backToLog()">返回航线地图</button>
+</div>
+
+<div id="pauseOverlay" onclick="togglePause()">
+  <h2>训 练 暂 停</h2>
+  <p>点击任意位置继续</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+let scene, camera, renderer, plane, clock;
+let keys = {}, calmActive = false;
+let eventTriggered = false, eventStartTime = 0;
+let rs = 0, rq = 0, rst = 0;
+let shakeIntensity = 0;
+let rain = null;
+let stressLevel = 2;
+let paused = false;
+let stressTimer = null;
+let flapLevel = 0;
+let gearDown = false;
+let throttle = 0;
+
+let calmPhase = 'silent';
+let calmCountdownTimer = null;
+let calmCountdownValue = 5;
+let recoveryMode = 'self';
+let recoveryRawTime = 0;
+let recoveryMultiplier = 1.0;
+
+let speed = 0;
+let pitchDrift = 0;
+let rollDrift = 0;
+let initialAltitude = 20;
+let flying = false;   // 是否已经起飞（速度 > 0.05）
+
+let mainLight = null;
+let ambientLight = null;
+
+const aiTexts = [
+  "注意你的姿态。如果紧张，先稳住坡度，再关注俯仰。",
+  "压力来的时候，先扫视一圈仪表：空速、高度、姿态。",
+  "你不需要完美，只需要稳住。一次只做一个动作。",
+  "呼吸慢下来，操控就会稳下来。"
+];
+let aiIdx = 0;
+let thunderRainAudio = null;
+let alarmAudio = null;
+let breathAudio = null;
+
+const eventTypes = [
+  { name: "发动机失效", alerts: ["⚠ 发动机失效", "⚠ 空速过低", "⚠ 高度下降"] },
+  { name: "风切变", alerts: ["⚠ 风切变", "⚠ 空速骤变", "⚠ 高度损失"] },
+  { name: "仪表失效", alerts: ["⚠ 姿态仪故障", "⚠ 空速表异常", "⚠ 高度表异常"] },
+  { name: "复飞指令", alerts: ["⚠ 立即复飞", "⚠ 推力不足", "⚠ 姿态过低"] }
+];
+
+function initAudio() {
+  if (!thunderRainAudio) {
+    thunderRainAudio = new Audio('./sounds/thunder-rain.mp3');
+    thunderRainAudio.volume = 0.8;
+  }
+  if (!alarmAudio) {
+    alarmAudio = new Audio('./sounds/alarm.mp3');
+    alarmAudio.volume = 0.6;
+  }
+  if (!breathAudio) {
+    breathAudio = new Audio('./sounds/breath.mp3');
+    breathAudio.volume = 0.5;
+    breathAudio.loop = true;
+  }
+}
+function playThunder(volume, delay, randomStart) {
+  if (!thunderRainAudio) initAudio();
+  setTimeout(() => {
+    const sound = new Audio('./sounds/thunder-rain.mp3');
+    sound.volume = volume;
+    if (randomStart) sound.currentTime = Math.random() * 8;
+    sound.play().catch(() => {});
+  }, delay);
+}
+function playFarThunder() { playThunder(0.25, 2000 + Math.random() * 2000, true); }
+function playMidThunder() { playThunder(0.6, 800 + Math.random() * 700, true); }
+function playNearThunder() { playThunder(1.0, 80, false); }
+function playAlarm() {
+  if (!alarmAudio) initAudio();
+  alarmAudio.currentTime = 0;
+  alarmAudio.play().catch(() => {});
+}
+function playBreath() {
+  if (!breathAudio) initAudio();
+  breathAudio.currentTime = 0;
+  breathAudio.play().catch(() => {});
+}
+function stopBreath() {
+  if (breathAudio) { breathAudio.pause(); breathAudio.currentTime = 0; }
+}
+
+function cycleFlaps() {
+  flapLevel = (flapLevel + 1) % 3;
+  const names = ['收起', '半展', '全展'];
+  document.getElementById('flapVal').textContent = names[flapLevel];
+  const btn = document.getElementById('flapBtn');
+  btn.classList.remove('active', 'warn');
+  if (flapLevel === 1) btn.classList.add('warn');
+  if (flapLevel === 2) btn.classList.add('active');
+}
+function toggleGear() {
+  gearDown = !gearDown;
+  document.getElementById('gearVal').textContent = gearDown ? '放下' : '收起';
+  const btn = document.getElementById('gearBtn');
+  if (gearDown) btn.classList.add('warn');
+  else btn.classList.remove('warn');
+}
+
+function createTree(x, z) {
+  const tree = new THREE.Group();
+  const trunkHeight = 4 + Math.random() * 5;
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.6, trunkHeight, 5),
+    new THREE.MeshLambertMaterial({ color: 0x3a2510 })
+  );
+  trunk.position.y = trunkHeight / 2;
+  tree.add(trunk);
+  const layers = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < layers; i++) {
+    const ch = 6 + Math.random() * 4;
+    const cw = 3 + Math.random() * 1.5 - i * 0.6;
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(cw, ch, 6),
+      new THREE.MeshLambertMaterial({ color: 0x1a3a1a })
+    );
+    cone.position.y = trunkHeight + i * 3 + ch / 2 - 1;
+    tree.add(cone);
+  }
+  tree.position.set(x, 0, z);
+  return tree;
+}
+
+function init() {
+  scene = new THREE.Scene();
+
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load('./images/sky.jpg', (tex) => {
+    scene.background = tex;
+  }, undefined, () => {
+    scene.background = new THREE.Color(0x1a2230);
+  });
+
+  scene.fog = new THREE.FogExp2(0x2a3540, 0.0015);
+
+  camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 4000);
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+  clock = new THREE.Clock();
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000, 1, 1),
+    new THREE.MeshLambertMaterial({ color: 0x1e2c1a }));
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -50;
+  scene.add(ground);
+
+  const grid = new THREE.GridHelper(8000, 160, 0x283a26, 0x1a2a18);
+  grid.position.y = -49.5;
+  scene.add(grid);
+
+  const treeCount = 500;
+  for (let i = 0; i < treeCount; i++) {
+    const x = (Math.random() - 0.5) * 1800;
+    const z = 200 - Math.random() * 2400;
+    if (Math.abs(x) < 25 && Math.abs(z) < 50) continue;
+    const tree = createTree(x, z);
+    tree.position.y = -50;
+    scene.add(tree);
+  }
+
+  for (let i = 0; i < 25; i++) {
+    const hill = new THREE.Mesh(
+      new THREE.ConeGeometry(80 + Math.random() * 120, 60 + Math.random() * 60, 4),
+      new THREE.MeshLambertMaterial({ color: 0x12201a })
+    );
+    hill.position.set(
+      (Math.random() - 0.5) * 2500,
+      -50,
+      -1000 - Math.random() * 2000
+    );
+    scene.add(hill);
+  }
+
+  for (let i = 0; i < 50; i++) {
+    const cloud = new THREE.Mesh(
+      new THREE.SphereGeometry(20 + Math.random() * 30, 8, 6),
+      new THREE.MeshBasicMaterial({
+        color: i % 3 === 0 ? 0x2a2a35 : 0x1a1a22,
+        transparent: true, opacity: 0.6
+      })
+    );
+    cloud.position.set(
+      (Math.random() - 0.5) * 900,
+      30 + Math.random() * 70,
+      -Math.random() * 700 - 50
+    );
+    scene.add(cloud);
+  }
+
+  plane = new THREE.Group();
+  plane.position.set(0, initialAltitude, 0);
+  plane.visible = false;
+  scene.add(plane);
+
+  const rainCount = 5000;
+  const rainGeo = new THREE.BufferGeometry();
+  const rainPositions = new Float32Array(rainCount * 3);
+  for (let i = 0; i < rainCount; i++) {
+    rainPositions[i*3] = (Math.random() - 0.5) * 500;
+    rainPositions[i*3+1] = Math.random() * 250;
+    rainPositions[i*3+2] = (Math.random() - 0.5) * 500;
+  }
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+  const rainMat = new THREE.PointsMaterial({
+    color: 0x88aacc, size: 0.5, transparent: true, opacity: 0.55
+  });
+  rain = new THREE.Points(rainGeo, rainMat);
+  rain.visible = false;
+  scene.add(rain);
+
+  ambientLight = new THREE.AmbientLight(0x7a8a9a, 0.7);
+  scene.add(ambientLight);
+
+  mainLight = new THREE.DirectionalLight(0x9aaabb, 0.55);
+  mainLight.position.set(1, 2, 1);
+  scene.add(mainLight);
+
+  document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'KeyF') cycleFlaps();
+    if (e.code === 'KeyG') toggleGear();
+  });
+  document.addEventListener('keyup', e => { keys[e.code] = false; });
+  document.addEventListener('click', initAudio, {once:true});
+  document.addEventListener('keydown', initAudio, {once:true});
+
+  document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      stressLevel = parseInt(btn.dataset.level);
+    });
+  });
+
+  setInterval(rotateAI, 10000);
+  scheduleStress();
+  animate();
+}
+
+/* ========== 压力调度：只在有空速之后触发 ========== */
+function scheduleStress() {
+  if (stressTimer) clearTimeout(stressTimer);
+  const delay = 8000 + Math.random() * 12000;
+  stressTimer = setTimeout(() => {
+    if (paused || calmActive || eventTriggered) return;
+    // 只有飞机真正飞起来（速度 > 0.3）才触发压力
+    if (speed > 0.3) {
+      triggerStress();
+    } else {
+      // 还没起飞，稍后重试
+      scheduleStress();
+    }
+  }, delay);
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('pauseBtn');
+  const overlay = document.getElementById('pauseOverlay');
+  if (paused) {
+    btn.textContent = '继续';
+    btn.classList.add('paused');
+    overlay.style.display = 'flex';
+  } else {
+    btn.textContent = '暂停';
+    btn.classList.remove('paused');
+    overlay.style.display = 'none';
+    if (!eventTriggered) scheduleStress();
+  }
+}
+
+let typeTimer = null;
+function typeAIText(fullText) {
+  const el = document.getElementById('ai');
+  el.textContent = '';
+  el.style.opacity = 1;
+  let i = 0;
+  if (typeTimer) clearInterval(typeTimer);
+  typeTimer = setInterval(() => {
+    if (i < fullText.length) {
+      el.textContent += fullText.charAt(i);
+      i++;
+    } else clearInterval(typeTimer);
+  }, 40);
+}
+function rotateAI() {
+  if (calmActive || paused) return;
+  const el = document.getElementById('ai');
+  el.style.opacity = 0;
+  setTimeout(() => {
+    aiIdx = (aiIdx+1) % aiTexts.length;
+    typeAIText('AI 副驾驶：' + aiTexts[aiIdx]);
+  }, 500);
+}
+
+function illuminateWorld(intensity) {
+  if (!mainLight || !ambientLight) return;
+  const baseAmbient = 0.7;
+  const baseMain = 0.55;
+  ambientLight.intensity = baseAmbient + 1.3 * intensity;
+  mainLight.intensity = baseMain + 1.8 * intensity;
+  setTimeout(() => {
+    ambientLight.intensity = baseAmbient;
+    mainLight.intensity = baseMain;
+  }, 130);
+}
+
+function drawSvgLightning(type) {
+  const svg = document.getElementById('lightningSvg');
+  const line = document.getElementById('lightningLine');
+  const line2 = document.getElementById('lightningLine2');
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+
+  let startX;
+  if (type === 'far') startX = W * (0.1 + Math.random() * 0.8);
+  else if (type === 'mid') startX = W * (0.2 + Math.random() * 0.6);
+  else startX = W * (0.35 + Math.random() * 0.3);
+  const startY = 0;
+
+  let endY;
+  if (type === 'far') endY = H * 0.5;
+  else if (type === 'mid') endY = H * 0.75;
+  else endY = H * 0.95;
+
+  const segments = type === 'near' ? 16 : type === 'mid' ? 13 : 10;
+  const spread = type === 'near' ? 60 : type === 'mid' ? 50 : 30;
+
+  function makePoints(offsetX) {
+    const pts = [];
+    let x = startX + offsetX;
+    let y = startY;
+    pts.push(x + ',' + y);
+    for (let i = 0; i < segments; i++) {
+      x += (Math.random() - 0.5) * spread;
+      y += (endY - startY) / segments;
+      pts.push(x + ',' + y);
+    }
+    return pts.join(' ');
+  }
+
+  line.setAttribute('points', makePoints(0));
+  line2.setAttribute('points', makePoints(2));
+
+  if (type === 'far') {
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke', '#aabbdd');
+    line2.setAttribute('stroke-width', '1');
+    svg.style.opacity = 0.7;
+  } else if (type === 'mid') {
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke', '#eef4ff');
+    line2.setAttribute('stroke-width', '1.5');
+    svg.style.opacity = 0.9;
+  } else {
+    line.setAttribute('stroke-width', '6');
+    line.setAttribute('stroke', '#ffffff');
+    line2.setAttribute('stroke-width', '3');
+    svg.style.opacity = 1;
+  }
+
+  const t1 = type === 'near' ? 60 : 40;
+  const t2 = type === 'near' ? 100 : 80;
+  const t3 = type === 'near' ? 320 : 240;
+  setTimeout(() => { svg.style.opacity = 0.2; }, t1);
+  setTimeout(() => { svg.style.opacity = 1; }, t2);
+  setTimeout(() => { svg.style.opacity = 0; }, t3);
+}
+
+function flashScreen(type) {
+  const white = document.getElementById('flashWhite');
+  const blue = document.getElementById('flashBlue');
+  if (type === 'far') {
+    blue.style.transition = 'opacity 0.05s';
+    blue.style.opacity = 0.35;
+    setTimeout(() => {
+      blue.style.transition = 'opacity 0.4s';
+      blue.style.opacity = 0;
+    }, 60);
+  } else if (type === 'mid') {
+    white.style.transition = 'opacity 0.03s';
+    white.style.opacity = 0.5;
+    setTimeout(() => {
+      white.style.transition = 'opacity 0.25s';
+      white.style.opacity = 0;
+    }, 40);
+  } else {
+    white.style.transition = 'opacity 0.02s';
+    white.style.opacity = 0.95;
+    setTimeout(() => {
+      white.style.transition = 'opacity 0.35s';
+      white.style.opacity = 0;
+    }, 40);
+    shakeIntensity = 1.5;
+    const gr = document.getElementById('glassRain');
+    gr.classList.add('active');
+    setTimeout(() => gr.classList.remove('active'), 2000);
+  }
+}
+
+function strikeOnce(type) {
+  drawSvgLightning(type);
+  flashScreen(type);
+  if (type === 'far') illuminateWorld(0.3);
+  else if (type === 'mid') illuminateWorld(0.6);
+  else illuminateWorld(1.0);
+
+  if (type === 'far') playFarThunder();
+  else if (type === 'mid') playMidThunder();
+  else playNearThunder();
+}
+
+function lightningSequence(sequence) {
+  if (rain) rain.visible = true;
+  let cumulative = 0;
+  sequence.forEach((type, idx) => {
+    if (idx > 0) {
+      cumulative += type === 'near' ? 450 + Math.random() * 300 :
+                    type === 'mid' ? 280 + Math.random() * 200 :
+                    400 + Math.random() * 400;
+    }
+    setTimeout(() => strikeOnce(type), cumulative);
+  });
+}
+
+let abcTimer = null;
+let abcRunning = false;
+function startABCCycle() {
+  abcRunning = true;
+  const circle = document.getElementById('abcCircle');
+  const letter = document.getElementById('abcLetter');
+  const label = document.getElementById('abcLabel');
+  const calmText = document.getElementById('calmText');
+  let stepIndex = 0;
+  const steps = [
+    { cls: 'step-A', letter: 'A', label: 'AVIATE',
+      text: '先稳住姿态。不要动推杆，先确认飞机是安全的。', duration: 4000 },
+    { cls: 'step-B-inhale', letter: 'B', label: '吸 气',
+      text: '跟着圆环呼吸。吸气 4 秒。', duration: 4000 },
+    { cls: 'step-B-hold', letter: 'B', label: '屏 住',
+      text: '屏住 2 秒。', duration: 2000 },
+    { cls: 'step-B-exhale', letter: 'B', label: '呼 气',
+      text: '呼气 6 秒。', duration: 6000 },
+    { cls: 'step-C', letter: 'C', label: 'CHECK',
+      text: '扫视一圈：空速、高度、推力。告诉我你看到了什么。', duration: 5000 }
+  ];
+  function runStep() {
+    if (!abcRunning) return;
+    const step = steps[stepIndex];
+    circle.className = step.cls;
+    letter.textContent = step.letter;
+    label.textContent = step.label;
+    calmText.textContent = step.text;
+    abcTimer = setTimeout(() => {
+      stepIndex++;
+      if (stepIndex >= steps.length) stepIndex = 0;
+      runStep();
+    }, step.duration);
+  }
+  runStep();
+}
+function stopABCCycle() {
+  abcRunning = false;
+  if (abcTimer) clearTimeout(abcTimer);
+  document.getElementById('abcCircle').className = '';
+  document.getElementById('abcLetter').textContent = 'A';
+  document.getElementById('abcLabel').textContent = 'AVIATE';
+}
+
+function showSilentPhase() {
+  calmPhase = 'silent';
+  document.getElementById('calmSilent').style.display = 'block';
+  document.getElementById('calmGuided').style.display = 'none';
+  calmCountdownValue = 5;
+  document.getElementById('calmCountdown').textContent = '5 秒后自动展开引导';
+  if (calmCountdownTimer) clearInterval(calmCountdownTimer);
+  calmCountdownTimer = setInterval(() => {
+    calmCountdownValue--;
+    if (calmCountdownValue > 0) {
+      document.getElementById('calmCountdown').textContent = calmCountdownValue + ' 秒后自动展开引导';
+    } else {
+      clearInterval(calmCountdownTimer);
+      chooseGuide(true);
+    }
+  }, 1000);
+}
+function showGuidedPhase() {
+  calmPhase = 'guided';
+  document.getElementById('calmSilent').style.display = 'none';
+  document.getElementById('calmGuided').style.display = 'block';
+}
+function chooseSelf() {
+  recoveryMode = 'self';
+  recoveryMultiplier = 1.0;
+  recoveryRawTime = (performance.now() - eventStartTime) / 1000;
+  if (calmCountdownTimer) clearInterval(calmCountdownTimer);
+  finishRecovery();
+}
+function chooseGuide(autoTriggered) {
+  recoveryMode = autoTriggered ? 'auto' : 'guided';
+  recoveryMultiplier = autoTriggered ? 1.3 : 1.5;
+  if (calmCountdownTimer) clearInterval(calmCountdownTimer);
+  showGuidedPhase();
+  startABCCycle();
+  playBreath();
+}
+function finishRecovery() {
+  calmActive = false;
+  document.getElementById('calm').style.display = 'none';
+  stopABCCycle();
+  stopBreath();
+  recoveryRawTime = (performance.now() - eventStartTime) / 1000;
+  rs = Math.max(1.5, recoveryRawTime * 0.8 * recoveryMultiplier).toFixed(1);
+  rq = Math.floor(Math.random() * 25) + 65;
+  rst = Math.floor(Math.random() * 20) + 75;
+  typeAIText('AI 副驾驶：很好。现在我们一起处理。');
+  ['warn1','warn2','warn3'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('abcCorner').classList.remove('active');
+  showReview();
+}
+function closeCalm() { finishRecovery(); }
+
+function triggerStress() {
+  if (calmActive || eventTriggered || paused) return;
+  // 双重保险：速度太低不触发
+  if (speed < 0.3) {
+    scheduleStress();
+    return;
+  }
+  calmActive = true; eventTriggered = true;
+  eventStartTime = performance.now();
+
+  const challengeRaw = localStorage.getItem('challengeConfig');
+  let evt;
+  if (challengeRaw) {
+    const challenge = JSON.parse(challengeRaw);
+    const evtName = challenge.events[Math.floor(Math.random() * challenge.events.length)];
+    evt = eventTypes.find(e => e.name === evtName) || eventTypes[0];
+  } else {
+    evt = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+  }
+
+  let sequence;
+  if (stressLevel === 1) sequence = ['far', 'far', 'mid'];
+  else if (stressLevel === 2) sequence = ['far', 'mid', 'mid', 'near'];
+  else sequence = ['far', 'mid', 'near', 'near', 'near'];
+
+  if (challengeRaw) {
+    const challenge = JSON.parse(challengeRaw);
+    if (challenge.boltMultiplier > 1) {
+      sequence = sequence.concat(['mid', 'near']);
+    }
+  }
+
+  const red = document.getElementById('flashRed');
+  red.style.opacity = 0.5 + stressLevel * 0.1;
+  setTimeout(() => { red.style.opacity = 0; }, 900);
+
+  lightningSequence(sequence);
+  setTimeout(playAlarm, 800);
+
+  const alertIds = ['alert1','alert2','alert3'];
+  alertIds.forEach((id, i) => {
+    document.getElementById(id).textContent = evt.alerts[i] || '';
+  });
+  const warnIds = ['warn1','warn2','warn3'].slice(0, stressLevel);
+  warnIds.forEach(id => document.getElementById(id).classList.add('active'));
+  setTimeout(() => {
+    alertIds.slice(0, stressLevel).forEach(id => {
+      const el = document.getElementById(id);
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 6000);
+    });
+  }, 1200);
+
+  document.getElementById('abcCorner').classList.add('active');
+
+  setTimeout(() => {
+    document.getElementById('calm').style.display = 'block';
+    showSilentPhase();
+  }, 1500);
+}
+
+async function showReview() {
+  const ri = Math.round((100 - rs * 5) * 0.4 + rq * 0.3 + rst * 0.3);
+  const finalRI = Math.max(0, Math.min(100, ri));
+  document.getElementById('riScore').textContent = 'RI = ' + finalRI;
+  document.getElementById('rsVal').textContent = rs + 's';
+  document.getElementById('rqVal').textContent = rq;
+  document.getElementById('rstVal').textContent = rst;
+
+  const tagEl = document.getElementById('recoveryTag');
+  if (recoveryMode === 'self') {
+    tagEl.textContent = '✦ 你自主恢复了。这是真实的重构速度。';
+    tagEl.style.color = '#4aff8a';
+  } else if (recoveryMode === 'guided') {
+    tagEl.textContent = '✦ 你主动请求了引导。RS 记 1.5 倍时长。';
+    tagEl.style.color = '#ffcc00';
+  } else {
+    tagEl.textContent = '✦ 5 秒后自动展开引导。RS 记 1.3 倍时长。';
+    tagEl.style.color = '#ffcc00';
+  }
+
+  document.getElementById('reviewText').textContent = 'AI 教练正在分析本次航段……';
+  document.getElementById('review').style.display = 'flex';
+  localStorage.setItem('lastRI', finalRI);
+
+  const API_KEY = localStorage.getItem('deepseekKey') || '';
+  if (!API_KEY) {
+    document.getElementById('reviewText').textContent =
+      '（未检测到 API key，请先在 ai-test.html 里测试一次）';
+    return;
+  }
+
+  const recoveryDesc = recoveryMode === 'self' ? '自主恢复' :
+                      recoveryMode === 'guided' ? '主动请求引导' : '超时自动展开引导';
+
+  const systemPrompt = `你是飞行员"心航 MindFlight"平台的AI教练，代号"重构引导者"。你根据飞行员本次航段的三个数据给出简短复盘：重构速度RS（秒）、重构质量RQ（0-100）、恢复稳定性RSt（0-100）。同时你知道他是"${recoveryDesc}"。你的语气温和、专业、不说教，不贴标签，不用"差""糟糕"等负面词汇。先用一句话复述数据，再根据恢复方式给出一句建议。总字数不超过100字。`;
+  const userPrompt = `本次航段数据：\n重构速度 RS = ${rs} 秒\n重构质量 RQ = ${rq}\n恢复稳定性 RSt = ${rst}\n弹性指数 RI = ${finalRI}\n恢复方式：${recoveryDesc}\n\n请给出复盘反馈。`;
+
+  try {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + API_KEY
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 300
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    document.getElementById('reviewText').textContent = data.choices[0].message.content;
+  } catch (err) {
+    document.getElementById('reviewText').textContent =
+      '复盘反馈生成失败：' + err.message + '（数据已记录，可继续）';
+  }
+}
+
+function backToLog() {
+  stopBreath();
+  stopABCCycle();
+  if (calmCountdownTimer) clearInterval(calmCountdownTimer);
+  const progress = JSON.parse(localStorage.getItem('mf_progress') || '{"completed":0}');
+  const currentWP = localStorage.getItem('currentWaypoint');
+  if (currentWP !== 'challenge' && parseInt(currentWP) === progress.completed) {
+    progress.completed = Math.min(progress.completed + 1, 8);
+  }
+  localStorage.setItem('mf_progress', JSON.stringify(progress));
+  localStorage.removeItem('challengeConfig');
+  window.location.href = './map.html';
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.05);
+
+  if (!calmActive && !paused && plane) {
+    // 姿态输入
+    const rotSpeed = 1.0 * delta;
+    if (keys['KeyW']) plane.rotation.x -= rotSpeed;
+    if (keys['KeyS']) plane.rotation.x += rotSpeed;
+    if (keys['KeyA']) plane.rotation.z += rotSpeed;
+    if (keys['KeyD']) plane.rotation.z -= rotSpeed;
+    if (keys['KeyQ']) plane.rotation.y += rotSpeed;
+    if (keys['KeyE']) plane.rotation.y -= rotSpeed;
+
+    // 气流扰动
+    pitchDrift += (Math.random() - 0.5) * 0.15 * delta;
+    pitchDrift *= 0.98;
+    plane.rotation.x += pitchDrift * delta * 2;
+    rollDrift += (Math.random() - 0.5) * 0.15 * delta;
+    rollDrift *= 0.98;
+    plane.rotation.z += rollDrift * delta * 2;
+
+    // 油门档位
+    if ((keys['ShiftLeft'] || keys['ShiftRight']) && !keys._shiftHeld) {
+      keys._shiftHeld = true;
+      throttle = Math.min(throttle + 10, 100);
+    }
+    if (!keys['ShiftLeft'] && !keys['ShiftRight']) keys._shiftHeld = false;
+    if ((keys['ControlLeft'] || keys['ControlRight']) && !keys._ctrlHeld) {
+      keys._ctrlHeld = true;
+      throttle = Math.max(throttle - 10, 0);
+    }
+    if (!keys['ControlLeft'] && !keys['ControlRight']) keys._ctrlHeld = false;
+
+    // ===== 速度模型：目标速度由油门决定 =====
+    // 0% → 0, 50% → 1.2（巡航）, 100% → 2.4
+    const targetSpeed = (throttle / 100) * 2.4;
+    const speedDiff = targetSpeed - speed;
+    speed += speedDiff * Math.min(1, delta * 1.5);
+    // 俯仰影响速度（机头抬起减速）
+    speed -= plane.rotation.x * 0.4 * delta;
+    speed = Math.max(0, Math.min(speed, 3.0));
+
+    // 是否已经起飞
+    flying = speed > 0.05;
+
+    // ===== 高度模型：主要由俯仰控制 =====
+    if (flying) {
+      // 俯仰 = 0 → 保持高度
+      // 俯仰 < 0（机头抬起）→ 爬升
+      // 俯仰 > 0（机头下压）→ 下降
+      const verticalSpeed = -plane.rotation.x * 25;
+      plane.position.y += verticalSpeed * delta;
+      // 速度偏离巡航也对高度有微弱影响
+      const speedDeviation = speed - 1.2;
+      plane.position.y += speedDeviation * 2 * delta;
+      plane.position.y = Math.max(5, Math.min(plane.position.y, 200));
+    }
+
+    // 姿态缓慢回中（模拟空气动力稳定性，很弱）
+    if (!keys['KeyW'] && !keys['KeyS']) plane.rotation.x *= 0.998;
+    if (!keys['KeyA'] && !keys['KeyD']) plane.rotation.z *= 0.998;
+    if (!keys['KeyQ'] && !keys['KeyE']) plane.rotation.y *= 0.998;
+    plane.rotation.x = Math.max(-0.5, Math.min(0.5, plane.rotation.x));
+    plane.rotation.z = Math.max(-0.5, Math.min(0.5, plane.rotation.z));
+
+    // ===== 前进：只有真正飞起来才移动 =====
+    if (flying) {
+      const forward = new THREE.Vector3(0,0,-1).applyQuaternion(plane.quaternion);
+      plane.position.add(forward.multiplyScalar(speed * 30 * delta));
+    }
+  }
+
+  const cockpitOffset = new THREE.Vector3(0, 0.6, -1.2).applyQuaternion(plane.quaternion);
+  camera.position.copy(plane.position).add(cockpitOffset);
+  if (shakeIntensity > 0.01) {
+    camera.position.x += (Math.random()-0.5) * shakeIntensity;
+    camera.position.y += (Math.random()-0.5) * shakeIntensity;
+    shakeIntensity *= 0.92;
+  }
+  camera.quaternion.copy(plane.quaternion);
+
+  if (rain && rain.visible) {
+    const positions = rain.geometry.attributes.position.array;
+    for (let i = 1; i < positions.length; i += 3) {
+      positions[i] -= 3.5;
+      if (positions[i] < 0) positions[i] = 250;
+    }
+    rain.geometry.attributes.position.needsUpdate = true;
+    rain.position.x = plane.position.x;
+    rain.position.z = plane.position.z;
+  }
+
+  const pitchDeg = THREE.MathUtils.radToDeg(plane.rotation.x);
+  const rollDeg = THREE.MathUtils.radToDeg(plane.rotation.z);
+  const attInner = document.getElementById('attitudeInner');
+  if (attInner) attInner.style.transform =
+    `rotate(${-rollDeg}deg) translateY(${pitchDeg * 1.2}%)`;
+
+  const spd = Math.round(speed * 250);
+  const spdEl = document.getElementById('spdVal');
+  spdEl.textContent = spd;
+  spdEl.classList.remove('warn', 'danger');
+  if (speed < 0.6 || speed > 2.2) spdEl.classList.add('danger');
+  else if (speed < 0.9 || speed > 1.8) spdEl.classList.add('warn');
+
+  const alt = Math.round(plane.position.y * 32);
+  const altEl = document.getElementById('altVal');
+  altEl.textContent = alt;
+  altEl.classList.remove('warn', 'danger');
+  if (plane.position.y < 10 || plane.position.y > 150) altEl.classList.add('danger');
+  else if (plane.position.y < 15 || plane.position.y > 120) altEl.classList.add('warn');
+
+  const thr = throttle;
+  document.getElementById('thrVal').textContent = thr + '%';
+  document.getElementById('thrFill').style.width = thr + '%';
+
+  const stabEl = document.getElementById('stability');
+  const pitchOK = Math.abs(plane.rotation.x) < 0.15;
+  const rollOK = Math.abs(plane.rotation.z) < 0.15;
+  const speedOK = speed > 0.9 && speed < 1.6;
+  const throttleOK = throttle >= 30 && throttle <= 70;
+  const altOK = plane.position.y > 15 && plane.position.y < 100;
+  const okCount = [pitchOK, rollOK, speedOK, throttleOK, altOK].filter(x => x).length;
+
+  if (okCount === 5) { stabEl.textContent = '稳 定 巡 航'; stabEl.className = ''; }
+  else if (okCount >= 3) { stabEl.textContent = '姿 态 偏 离'; stabEl.className = 'warn'; }
+  else { stabEl.textContent = '失 去 控 制'; stabEl.className = 'danger'; }
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+init();
+</script></body></html>

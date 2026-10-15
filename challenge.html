@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>挑战航段</title>
+<style>
+html, body { margin:0; background:#0a1220; color:#eee; font-family:sans-serif;
+  min-height:100vh; }
+#header { padding:30px 60px 10px; }
+#header h1 { color:#4a9eff; font-weight:normal; letter-spacing:4px; font-size:22px;
+  margin:0 0 8px 0; }
+#header p { color:#666; font-size:13px; margin:0; }
+#backBtn { position:fixed; top:30px; right:40px; padding:8px 18px;
+  background:transparent; color:#aaa; border:1px solid #2a3a55;
+  border-radius:6px; cursor:pointer; font-size:13px; }
+#backBtn:hover { color:#fff; border-color:#4a9eff; }
+
+#challengeGrid { display:grid; grid-template-columns:repeat(2, 1fr); gap:20px;
+  padding:30px 60px 60px; max-width:1000px; }
+
+.challengeCard { background:rgba(20,30,50,0.9); padding:26px; border-radius:14px;
+  border-left:4px solid #4a9eff; box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+.challengeCard:hover { transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(74,158,255,0.2); }
+.challengeCard.locked { opacity:0.5; cursor:not-allowed; }
+.challengeCard.locked:hover { transform:none; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+
+.challengeCard h3 { color:#7ec8ff; font-size:18px; margin:0 0 10px 0;
+  font-weight:normal; letter-spacing:2px; }
+.challengeCard p { color:#999; font-size:13px; line-height:1.7; margin:0 0 16px 0; }
+.challengeCard .meta { display:flex; gap:16px; align-items:center;
+  font-size:12px; color:#666; flex-wrap:wrap; }
+
+.difficulty { padding:3px 10px; border-radius:10px; font-size:11px;
+  letter-spacing:1px; }
+.diff-1 { background:rgba(74,255,138,0.15); color:#4aff8a; }
+.diff-2 { background:rgba(255,204,0,0.15); color:#ffcc00; }
+.diff-3 { background:rgba(255,100,100,0.15); color:#ff6666; }
+
+.riRange { color:#555; }
+
+#tip { padding:20px 60px; color:#555; font-size:12px; letter-spacing:1px; }
+</style></head>
+<body>
+
+<div id="header">
+  <h1>挑 战 航 段</h1>
+  <p>按压力事件类型分类的专项训练。选择一种，专注练习。</p>
+</div>
+<button id="backBtn" onclick="window.location.href='./map.html'">返回航线地图</button>
+
+<div id="challengeGrid"></div>
+
+<div id="tip">挑战航段不推进主线航点，但会记录 RI 数据。</div>
+
+<script>
+const challenges = [
+  {
+    id: 'thunder',
+    name: '雷暴航段',
+    desc: '连续闪电、雷声、乱流与雨滴。训练在强烈视觉冲击下的姿态保持。',
+    difficulty: 1,
+    riRange: 'RI 0-40',
+    events: ['风切变'],
+    boltMultiplier: 2,
+    abcFocus: '重点考察 A'
+  },
+  {
+    id: 'windshear',
+    name: '风切变航段',
+    desc: '突发的空速变化与高度损失。训练在多重告警下识别优先级。',
+    difficulty: 2,
+    riRange: 'RI 30-60',
+    events: ['风切变', '发动机失效'],
+    abcFocus: '重点考察 A + C'
+  },
+  {
+    id: 'engine',
+    name: '发动机失效航段',
+    desc: '单发失效、空速下降、推力不足。训练认知重评与处置流程。',
+    difficulty: 2,
+    riRange: 'RI 40-70',
+    events: ['发动机失效'],
+    abcFocus: '重点考察 A + C'
+  },
+  {
+    id: 'multi',
+    name: '多重告警航段',
+    desc: '同时出现多个告警与仪表异常。训练在信息过载下的扫视与决策。',
+    difficulty: 3,
+    riRange: 'RI 60-90',
+    events: ['发动机失效', '风切变', '仪表失效', '复飞'],
+    abcFocus: '综合考察 ABC'
+  }
+];
+
+function renderChallenges() {
+  const grid = document.getElementById('challengeGrid');
+  const ri = parseInt(localStorage.getItem('lastRI') || '0');
+
+  challenges.forEach(c => {
+    const locked = ri < parseInt(c.riRange.match(/\d+/)[0]);
+    const diffLabel = ['入门', '进阶', '强化'][c.difficulty - 1];
+    const diffClass = 'diff-' + c.difficulty;
+
+    const card = document.createElement('div');
+    card.className = 'challengeCard' + (locked ? ' locked' : '');
+    card.innerHTML = `
+      <h3>${c.name}</h3>
+      <p>${c.desc}</p>
+      <div class="meta">
+        <span class="difficulty ${diffClass}">${diffLabel}</span>
+        <span class="riRange">建议 ${c.riRange}</span>
+        <span style="color:#7ec8ff;">${c.abcFocus}</span>
+        ${locked ? '<span style="color:#ff6666;">尚未解锁</span>' : ''}
+      </div>
+    `;
+
+    card.onclick = () => {
+      if (locked) {
+        alert('当前 RI 还不足以解锁这个挑战。先完成主线航点吧。');
+        return;
+      }
+      localStorage.setItem('challengeConfig', JSON.stringify({
+        name: c.name,
+        events: c.events,
+        boltMultiplier: c.boltMultiplier || 1
+      }));
+      localStorage.setItem('currentWaypoint', 'challenge');
+      window.location.href = './cockpit.html';
+    };
+
+    grid.appendChild(card);
+  });
+}
+
+renderChallenges();
+</script>
+</body>
+</html>

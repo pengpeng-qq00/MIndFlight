@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>AI 测试</title></head>
+<body style="background:#111; color:#eee; font-family:sans-serif; padding:40px; max-width:700px;">
+  <h2>AI 测试</h2>
+  <p>先把你的 API key 粘贴到下面，然后点测试。</p>
+
+  <input id="apiKey" type="text" placeholder="sk-xxxxxxxxxxxx"
+    style="width:100%; padding:10px; background:#1a1a1a; color:#eee; border:1px solid #333; border-radius:6px; box-sizing:border-box;">
+
+  <button onclick="test()" style="margin-top:16px; padding:10px 24px; background:#4a9eff; color:#fff; border:none; border-radius:6px; cursor:pointer;">
+    测试
+  </button>
+
+  <p id="status" style="margin-top:20px; color:#888;">等待测试……</p>
+  <div id="reply" style="margin-top:20px; padding:16px; background:#1a1a1a; border-radius:8px; line-height:1.8; display:none;"></div>
+
+  <script>
+    async function test() {
+      const key = document.getElementById('apiKey').value.trim();
+      const status = document.getElementById('status');
+      const reply = document.getElementById('reply');
+
+      if (!key) {
+        status.textContent = '请先粘贴 API key';
+        status.style.color = '#ff5555';
+        return;
+      }
+
+      status.textContent = '正在请求……';
+      status.style.color = '#888';
+      reply.style.display = 'none';
+
+      try {
+        const res = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + key
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: '你是一名飞行员的AI教练，说话温和、简洁、专业，不啰嗦。' },
+              { role: 'user', content: '我第一次训练时，警报响了，我花了9秒才恢复操控。请用两句话鼓励我，不要超过60字。' }
+            ],
+            max_tokens: 200
+          })
+        });
+
+        const data = await res.json();
+        console.log('返回数据：', data);
+
+        if (data.error) {
+          status.textContent = '❌ 错误：' + data.error.message;
+          status.style.color = '#ff5555';
+          return;
+        }
+
+        const text = data.choices[0].message.content;
+        status.textContent = '✅ 成功';
+        status.style.color = '#4aff8a';
+        reply.textContent = text;
+        reply.style.display = 'block';
+
+        // 保存 key 到本地，下一步要用
+        localStorage.setItem('deepseekKey', key);
+
+      } catch (err) {
+        status.textContent = '❌ 请求失败：' + err.message;
+        status.style.color = '#ff5555';
+      }
+    }
+  </script>
+</body>
+</html>

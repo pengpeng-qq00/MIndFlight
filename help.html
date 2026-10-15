@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>心航 · 给予的支持</title>
+<style>
+html, body { margin:0; min-height:100vh; background:#0a1220; color:#eee;
+  font-family:sans-serif; padding-bottom:60px; }
+
+#header { padding:36px 60px 20px; }
+#header h1 { color:#4a9eff; font-weight:normal; letter-spacing:6px; font-size:24px;
+  margin:0 0 12px 0; }
+#header p { color:#666; font-size:13px; margin:0; letter-spacing:1px; }
+
+#backBtn { position:fixed; top:30px; right:40px; padding:8px 18px;
+  background:transparent; color:#aaa; border:1px solid #2a3a55;
+  border-radius:6px; cursor:pointer; font-size:13px; z-index:10; }
+#backBtn:hover { color:#fff; border-color:#4a9eff; }
+
+#container { max-width:820px; margin:0 auto; padding:0 40px; }
+
+/* 隐私承诺 */
+#privacyPromise {
+  background:linear-gradient(135deg, rgba(74,158,255,0.08) 0%, rgba(74,158,255,0.02) 100%);
+  border:1px solid rgba(74,158,255,0.3);
+  padding:24px 28px; border-radius:14px; margin-bottom:28px;
+}
+#privacyPromise h2 { color:#7ec8ff; font-size:16px; margin:0 0 14px 0;
+  font-weight:normal; letter-spacing:2px; }
+#privacyPromise ul { margin:0; padding:0 0 0 20px; color:#aaa; font-size:13px;
+  line-height:2; }
+#privacyPromise ul li::marker { color:#4a9eff; }
+
+
+/* 服务分类 */
+.section { margin-bottom:28px; }
+.section h2 { color:#7ec8ff; font-size:15px; margin:0 0 14px 0;
+  font-weight:normal; letter-spacing:2px; }
+
+.cardGrid { display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
+
+.card {
+  background:rgba(20,30,50,0.85);
+  border-left:3px solid #4a9eff;
+  padding:20px 22px; border-radius:12px;
+  cursor:pointer; transition:all 0.2s;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+}
+.card:hover { transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(74,158,255,0.15); }
+.card h3 { color:#7ec8ff; font-size:15px; margin:0 0 8px 0;
+  font-weight:normal; letter-spacing:1px; }
+.card p { color:#999; font-size:12px; line-height:1.7; margin:0 0 12px 0; }
+.card .tag { color:#4a9eff; font-size:11px; letter-spacing:1px; }
+
+.card.primary { border-left-color:#4aff8a; }
+.card.primary h3 { color:#4aff8a; }
+
+.card.urgent { border-left-color:#ff6666; }
+.card.urgent h3 { color:#ff6666; }
+
+/* 匿名倾诉 */
+#chatBox {
+  background:rgba(20,30,50,0.85);
+  border:1px solid #2a3a55;
+  padding:24px 28px; border-radius:14px;
+}
+#chatBox h2 { color:#7ec8ff; font-size:15px; margin:0 0 8px 0;
+  font-weight:normal; letter-spacing:2px; }
+#chatBox .hint { color:#666; font-size:12px; margin:0 0 16px 0;
+  line-height:1.7; }
+#chatInput { width:100%; height:100px; background:#0a1525; color:#eee;
+  border:1px solid #2a3a55; border-radius:8px; padding:14px;
+  font-size:14px; resize:vertical; box-sizing:border-box;
+  font-family:inherit; line-height:1.7; }
+#chatInput:focus { outline:none; border-color:#4a9eff; }
+#sendBtn { margin-top:12px; padding:12px 32px; background:#4a9eff; color:#fff;
+  border:none; border-radius:8px; font-size:14px; cursor:pointer;
+  letter-spacing:2px; }
+#sendBtn:hover { background:#5fb0ff; }
+#sendBtn:disabled { background:#2a3a55; cursor:not-allowed; }
+#chatReply { margin-top:20px; padding:16px 20px; background:rgba(74,158,255,0.06);
+  border-left:3px solid #4a9eff; border-radius:8px;
+  color:#ccc; font-size:13px; line-height:1.8; display:none; min-height:40px; }
+#chatReply.show { display:block; }
+#chatReply .aiTag { color:#7ec8ff; font-size:11px; letter-spacing:2px;
+  display:block; margin-bottom:8px; }
+
+/* 底部数据主权 */
+#dataSovereignty {
+  text-align:center; padding:36px 0 20px;
+  color:#555; font-size:12px; line-height:1.9;
+}
+#dataSovereignty button {
+  padding:8px 20px; background:transparent; color:#666;
+  border:1px solid #2a3a55; border-radius:6px; font-size:12px;
+  cursor:pointer; margin-top:12px; letter-spacing:1px;
+}
+#dataSovereignty button:hover { color:#aaa; border-color:#4a3a3a; }
+</style></head>
+<body>
+
+<div id="header">
+  <h1>私 密 支 持</h1>
+  <p>这里没有监控，没有记录，没有评价。只有一个安静的入口。</p>
+</div>
+<button id="backBtn" onclick="window.location.href='./map.html'">返回航线地图</button>
+
+<div id="container">
+
+  <!-- 隐私承诺 -->
+  <div id="privacyPromise">
+    <h2>在你看任何内容之前，先看这些</h2>
+    <ul>
+      <li>此页面的所有内容<strong>只存在于你的浏览器本地</strong>，不上传服务器</li>
+      <li>我们<strong>不记录</strong>你的姓名、工号、航班信息</li>
+      <li>你在这里写的任何内容<strong>不会同步到航司、EAP 或任何第三方</strong></li>
+      <li>你随时可以点击下方"清除本地数据"删掉一切痕迹</li>
+      <li>如果数据提示高危，我们只会<strong>温和提示</strong>，不会通知任何人</li>
+    </ul>
+  </div>
+
+ 
+  <!-- 服务分类 -->
+  <div class="section">
+    <h2>专业心理服务入口</h2>
+    <div class="cardGrid">
+
+      <div class="card primary" onclick="alert('这是一个示意入口。\n\n实际部署时，这里会接入航司 EAP 或第三方心理咨询机构的预约系统。\n\n用户点击后进入匿名预约流程，只需留下一个匿名 ID，不需要真实姓名。')">
+        <h3>一对一心理咨询</h3>
+        <p>与专业心理咨询师视频或语音会谈。首次访谈免费。</p>
+        <span class="tag">通常 2-3 个工作日内响应</span>
+      </div>
+
+      <div class="card primary" onclick="alert('这是一个示意入口。\n\n实际部署时，这里会接入匿名群组支持平台，用户以代号参与。')">
+        <h3>匿名同行支持小组</h3>
+        <p>和其他飞行员一起聊。不露脸、不改真名、不讨论具体航班。</p>
+        <span class="tag">每周三晚 8 点 · 匿名视频</span>
+      </div>
+
+      <div class="card" onclick="alert('这是一个示意入口。\n\n实际部署时接入航司 EAP（员工帮助计划），由专业机构提供。')">
+        <h3>航司 EAP 通道</h3>
+        <p>通过公司员工帮助计划获得支持。可匿名申请，HR 不介入。</p>
+        <span class="tag">不影响绩效与排班</span>
+      </div>
+
+      <div class="card" onclick="alert('这是一个示意入口。\n\n实际部署时接入航空医学体检机构的心理评估资源。')">
+        <h3>航空医学心理评估</h3>
+        <p>如果担心自己的状态影响体检，可以预约一次独立的专业评估。</p>
+        <span class="tag">由航空医学背景的临床心理师提供</span>
+      </div>
+
+      <div class="card urgent" onclick="alert('如果此刻情况紧急，请直接拨打全国心理援助热线：400-161-9995')">
+        <h3>危机快速通道</h3>
+        <p>如果你现在处于强烈的情绪危机中，点击直接接入 24 小时热线。</p>
+        <span class="tag">立即响应 · 24 小时</span>
+      </div>
+
+      <div class="card" onclick="alert('这是一个示意入口。\n\n实际部署时接入航空心理学知识库。')">
+        <h3>航空心理学资源库</h3>
+        <p>飞行员心理胜任力、惊讶管理、疲劳恢复的循证阅读材料。</p>
+        <span class="tag">由专业心理团队编写</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 匿名倾诉 -->
+  <div id="chatBox">
+    <h2>匿名倾诉</h2>
+    <p class="hint">把心里的话先写下来，AI 教练会安静地读完，然后回应你一两句。
+      这里写的任何内容都不上传、不保存、不留痕。</p>
+    <textarea id="chatInput" placeholder="今天……"></textarea>
+    <button id="sendBtn" onclick="sendMessage()">发 送</button>
+    <div id="chatReply"></div>
+  </div>
+
+  <!-- 数据主权 -->
+  <div id="dataSovereignty">
+    你的数据永远属于你自己。<br>
+    你可以随时清除本地保存的所有训练记录与日志。
+    <br>
+    <button onclick="clearAllData()">清 除 本 地 数 据</button>
+  </div>
+
+</div>
+
+<script>
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const reply = document.getElementById('chatReply');
+  const btn = document.getElementById('sendBtn');
+  const text = input.value.trim();
+
+  if (!text) { alert('先写一句吧'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '正 在 回 应';
+  reply.classList.add('show');
+  reply.innerHTML = '<span class="aiTag">AI 教练</span>正在读……';
+
+  const API_KEY = localStorage.getItem('deepseekKey') || '';
+  if (!API_KEY) {
+    reply.innerHTML = '<span class="aiTag">AI 教练</span>' +
+      '（未检测到 API key。你仍可以拨打上方任意热线，' +
+      '那边的回应更专业。）';
+    btn.disabled = false;
+    btn.textContent = '发 送';
+    return;
+  }
+
+  const systemPrompt = `你是飞行员"心航 MindFlight"平台的AI教练，代号"重构引导者"。飞行员在匿名倾诉页面写下一段话，你要用最简短、最温和的方式回应他。规则：1）先承认他的感受（一句话，不加评判）；2）不分析、不建议、不追问；3）如果内容里出现"撑不住""不想活""没有意义"等高危信号，只做一件事：温和地提示他拨打全国心理援助热线 400-161-9995，其他什么都不说；4）回复总长度不超过 60 字；5）绝对不使用"问题""症状""异常""抑郁""焦虑症"等诊断性词汇。`;
+
+  try {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + API_KEY
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text }
+        ],
+        max_tokens: 200
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    reply.innerHTML = '<span class="aiTag">AI 教练</span>' +
+      data.choices[0].message.content;
+    // 不保存到 localStorage，本地不留痕
+    input.value = '';
+  } catch (err) {
+    reply.innerHTML = '<span class="aiTag">AI 教练</span>' +
+      '暂时无法回应：' + err.message +
+      '（你仍可以拨打上方任意热线）';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '发 送';
+  }
+}
+
+function clearAllData() {
+  if (!confirm('确定要清除所有本地数据吗？这将删除：\n' +
+    '· 训练进度\n· 飞行日志\n· 弹性指数记录\n· 量表答案\n\n' +
+    '此操作不可撤销。')) return;
+  localStorage.removeItem('mf_progress');
+  localStorage.removeItem('lastRI');
+  localStorage.removeItem('logs');
+  localStorage.removeItem('assessment');
+  localStorage.removeItem('challengeConfig');
+  localStorage.removeItem('currentWaypoint');
+  alert('已清除。页面即将刷新。');
+  setTimeout(() => location.reload(), 800);
+}
+</script>
+</body>
+</html>

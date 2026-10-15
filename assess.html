@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>飞行档案</title>
+<style>
+html, body { margin:0; background:#0a1220; color:#eee; font-family:sans-serif;
+  display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px 0; }
+#box { width:600px; background:rgba(20,30,50,0.95); padding:40px; border-radius:16px;
+  box-shadow:0 0 40px rgba(74,158,255,0.15); }
+h2 { color:#4a9eff; font-weight:normal; letter-spacing:2px; margin-top:0; }
+.sub { color:#666; font-size:13px; margin-bottom:28px; }
+.q { margin:24px 0; }
+.q p { font-size:15px; line-height:1.7; margin:0 0 12px 0; }
+.opts { display:flex; gap:10px; }
+.opts button { flex:1; padding:12px 0; background:#1a2a44; color:#ccc;
+  border:1px solid #2a3a55; border-radius:8px; cursor:pointer;
+  transition:all 0.2s; font-size:14px; }
+.opts button:hover { background:#2a4a7a; color:#fff; }
+.opts button.selected { background:#4a9eff; color:#fff; border-color:#4a9eff; }
+#nextBtn { margin-top:30px; padding:14px 0; width:100%; background:#4a9eff; color:#fff;
+  border:none; border-radius:8px; font-size:16px; cursor:pointer; letter-spacing:2px; }
+#nextBtn:hover { background:#5fb0ff; }
+#progress { color:#4a9eff; font-size:13px; text-align:right; margin-bottom:10px; }
+</style></head>
+<body>
+<div id="box">
+  <h2>飞行档案 · 情绪弹性画像</h2>
+  <div class="sub">这不是考试，没有对错。只是让我记住你。</div>
+  <div id="progress"></div>
+  <div id="qArea"></div>
+  <button id="nextBtn" onclick="nextQ()">下 一 题</button>
+</div>
+<script>
+const questions = [
+  "最近一个月，你有多少次因为一些意料之外的事情而心烦？",
+  "你觉得自己有能力处理生活中那些令人烦恼的事情吗？",
+  "当事情发生变化时，我能适应。",
+  "我能应对任何困难。",
+  "感到紧张、焦虑或急切。",
+  "无法停止或控制担忧。"
+];
+let current = 0;
+const answers = [];
+
+function renderQ() {
+  document.getElementById('progress').textContent = (current+1) + ' / ' + questions.length;
+  document.getElementById('qArea').innerHTML = `
+    <div class="q"><p>${questions[current]}</p>
+    <div class="opts">
+      ${[1,2,3,4,5].map(v => `<button onclick="pick(${v}, this)">${v}</button>`).join('')}
+    </div></div>`;
+}
+
+function pick(v, btn) {
+  document.querySelectorAll('.opts button').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  answers[current] = v;
+}
+
+function nextQ() {
+  if (!answers[current]) { alert('请先选一个选项'); return; }
+  current++;
+  if (current < questions.length) renderQ();
+  else {
+    localStorage.setItem('assessment', JSON.stringify(answers));
+    alert('档案已建立。接下来这张航线，是为你一个人画的。');
+    window.location.href = './map.html';
+  }
+}
+renderQ();
+</script></body></html>

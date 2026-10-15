@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>情绪调节课堂</title>
+<style>
+html, body { margin:0; background:#0a1220; color:#eee; font-family:sans-serif;
+  min-height:100vh; }
+#header { padding:30px 60px 10px; }
+#header h1 { color:#4a9eff; font-weight:normal; letter-spacing:4px; font-size:22px;
+  margin:0 0 8px 0; }
+#header p { color:#666; font-size:13px; margin:0; }
+#backBtn { position:fixed; top:30px; right:40px; padding:8px 18px;
+  background:transparent; color:#aaa; border:1px solid #2a3a55;
+  border-radius:6px; cursor:pointer; font-size:13px; }
+#backBtn:hover { color:#fff; border-color:#4a9eff; }
+
+#tabs { display:flex; gap:4px; padding:20px 60px 0; }
+.tab { padding:12px 24px; background:rgba(20,30,50,0.6); color:#888;
+  border:none; border-bottom:2px solid transparent;
+  cursor:pointer; font-size:14px; letter-spacing:1px;
+  border-radius:8px 8px 0 0; transition:all 0.2s; }
+.tab:hover { color:#ccc; }
+.tab.active { background:rgba(20,30,50,0.95); color:#4a9eff;
+  border-bottom-color:#4a9eff; }
+
+#content { padding:30px 60px 80px; max-width:900px; }
+.panel { display:none; background:rgba(20,30,50,0.7); padding:30px;
+  border-radius:0 14px 14px 14px; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+.panel.active { display:block; }
+.panel h2 { color:#7ec8ff; font-weight:normal; margin-top:0;
+  letter-spacing:2px; font-size:18px; }
+.panel p { line-height:1.9; color:#aaa; font-size:14px; }
+
+/* 呼吸节拍 */
+.breathArea { text-align:center; padding:40px 0; }
+#breathRing { width:180px; height:180px; margin:0 auto;
+  border-radius:50%; border:3px solid #4a9eff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; color:#7ec8ff; letter-spacing:6px;
+  background:radial-gradient(circle, rgba(74,158,255,0.1) 0%, transparent 70%);
+  transition:transform 4s cubic-bezier(0.4, 0, 0.6, 1), border-color 4s, background 4s; }
+#breathRing.inhale { transform:scale(1.35); border-color:#7ec8ff;
+  background:radial-gradient(circle, rgba(74,158,255,0.25) 0%, transparent 70%); }
+#breathRing.hold { transform:scale(1.35); border-color:#ffcc00;
+  background:radial-gradient(circle, rgba(255,204,0,0.25) 0%, transparent 70%);
+  transition:transform 0.5s, border-color 0.5s, background 0.5s; }
+#breathRing.exhale { transform:scale(0.85); border-color:#4aff8a;
+  background:radial-gradient(circle, rgba(74,255,138,0.2) 0%, transparent 70%);
+  transition:transform 6s cubic-bezier(0.4, 0, 0.6, 1), border-color 6s, background 6s; }
+.breathBtn { padding:12px 36px; background:#4a9eff; color:#fff; border:none;
+  border-radius:8px; font-size:15px; cursor:pointer; letter-spacing:2px;
+  margin-top:20px; }
+.breathBtn:hover { background:#5fb0ff; }
+
+/* 情绪命名 */
+.emotionGrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;
+  margin-top:20px; }
+.emotionBtn { padding:14px; background:rgba(30,40,60,0.8); color:#ccc;
+  border:1px solid #2a3a55; border-radius:10px; cursor:pointer; font-size:14px;
+  transition:all 0.2s; }
+.emotionBtn:hover { background:rgba(74,158,255,0.2); border-color:#4a9eff; }
+.emotionBtn.selected { background:#4a9eff; color:#fff; border-color:#4a9eff; }
+#emotionReply { margin-top:20px; padding:16px; background:rgba(0,20,40,0.6);
+  border-left:3px solid #7ec8ff; border-radius:8px; color:#7ec8ff;
+  font-style:italic; line-height:1.7; min-height:20px; }
+
+/* 认知重评 */
+#thoughtInput { width:100%; height:80px; background:#0a1525; color:#eee;
+  border:1px solid #2a3a55; border-radius:8px; padding:12px;
+  font-size:14px; resize:vertical; box-sizing:border-box; font-family:inherit; }
+#thoughtInput:focus { outline:none; border-color:#4a9eff; }
+.reviewBtn { padding:10px 24px; background:#4a9eff; color:#fff; border:none;
+  border-radius:8px; font-size:14px; cursor:pointer; margin-top:12px;
+  letter-spacing:1px; }
+.reviewBtn:hover { background:#5fb0ff; }
+#reviewReply { margin-top:20px; padding:16px; background:rgba(0,20,40,0.6);
+  border-left:3px solid #7ec8ff; border-radius:8px; color:#7ec8ff;
+  font-style:italic; line-height:1.7; min-height:20px; }
+
+/* 策略库 */
+.strategyGrid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;
+  margin-top:20px; }
+.strategyCard { background:rgba(30,40,60,0.8); padding:20px; border-radius:12px;
+  border-left:3px solid #4a9eff; }
+.strategyCard h3 { color:#7ec8ff; font-size:15px; margin:0 0 10px 0;
+  font-weight:normal; letter-spacing:1px; }
+.strategyCard p { color:#aaa; font-size:13px; line-height:1.7; margin:0; }
+/* ABC 练习圆环状态 */
+#abcPracticeCircle.step-A { transform:scale(1.1); border-color:#4a9eff;
+  background:radial-gradient(circle, rgba(74,158,255,0.2) 0%, transparent 70%); }
+#abcPracticeCircle.step-A #abcPracticeLetter,
+#abcPracticeCircle.step-A #abcPracticeLabel { color:#4a9eff; }
+#abcPracticeCircle.step-B-inhale { transform:scale(1.4); border-color:#7ec8ff;
+  background:radial-gradient(circle, rgba(126,200,255,0.35) 0%, transparent 70%); }
+#abcPracticeCircle.step-B-inhale #abcPracticeLetter,
+#abcPracticeCircle.step-B-inhale #abcPracticeLabel { color:#7ec8ff; }
+#abcPracticeCircle.step-B-hold { transform:scale(1.4); border-color:#ffcc00;
+  background:radial-gradient(circle, rgba(255,204,0,0.3) 0%, transparent 70%);
+  transition:all 0.5s ease-in-out; }
+#abcPracticeCircle.step-B-hold #abcPracticeLetter,
+#abcPracticeCircle.step-B-hold #abcPracticeLabel { color:#ffcc00; }
+#abcPracticeCircle.step-B-exhale { transform:scale(0.85); border-color:#4aff8a;
+  background:radial-gradient(circle, rgba(74,255,138,0.25) 0%, transparent 70%);
+  transition:all 4s ease-in-out; }
+#abcPracticeCircle.step-B-exhale #abcPracticeLetter,
+#abcPracticeCircle.step-B-exhale #abcPracticeLabel { color:#4aff8a; }
+#abcPracticeCircle.step-C { transform:scale(1.05); border-color:#4aff8a;
+  background:radial-gradient(circle, rgba(74,255,138,0.2) 0%, transparent 70%); }
+#abcPracticeCircle.step-C #abcPracticeLetter,
+#abcPracticeCircle.step-C #abcPracticeLabel { color:#4aff8a; }
+</style></head>
+<body>
+
+<div id="header">
+  <h1>情 绪 调 节 课 堂</h1>
+  <p>四种可操作的情绪调节方法，每次训练前或压力事件后来这里练一次。</p>
+</div>
+<button id="backBtn" onclick="window.location.href='./map.html'">返回航线地图</button>
+
+<div id="tabs">
+  <button class="tab active" onclick="switchTab(0, this)">呼吸节拍</button>
+  <button class="tab" onclick="switchTab(1, this)">情绪命名</button>
+  <button class="tab" onclick="switchTab(2, this)">认知重评</button>
+  <button class="tab" onclick="switchTab(3, this)">策略库</button>
+   <button class="tab" onclick="switchTab(4, this)">ABC 惊讶管理</button>
+</div>
+
+<div id="content">
+
+  <!-- 呼吸节拍 -->
+  <div class="panel active">
+    <h2>呼吸节拍练习</h2>
+    <p>跟着圆环的节奏呼吸：吸气 4 秒 → 屏住 2 秒 → 呼气 6 秒。这个节奏可以降低生理唤醒水平，帮助你在惊讶之后恢复平静。</p>
+    <div class="breathArea">
+      <div id="breathRing">吸 气</div>
+      <button class="breathBtn" onclick="toggleBreath()" id="breathToggleBtn">开始</button>
+    </div>
+  </div>
+
+  <!-- 情绪命名 -->
+  <div class="panel">
+    <h2>情绪命名练习</h2>
+    <p>情境：今天航班延误了三小时，你一个人在驾驶舱里等。此刻你的第一感受是什么？点击最接近的那个词。</p>
+    <div class="emotionGrid" id="emotionGrid"></div>
+    <div id="emotionReply"></div>
+  </div>
+
+  <!-- 认知重评 -->
+  <div class="panel">
+    <h2>认知重评练习</h2>
+    <p>写下一句今天让你不舒服的想法（比如"我今天表现很差"）。然后点击"重新看一遍"，我会陪你换一个角度。</p>
+    <textarea id="thoughtInput" placeholder="今天我最不舒服的一个想法是……"></textarea>
+    <button class="reviewBtn" onclick="doReview()">重新看一遍</button>
+    <div id="reviewReply"></div>
+  </div>
+    <!-- ABC 惊讶管理 -->
+  <div class="panel">
+    <h2>ABC 惊讶管理</h2>
+    <p>ABC 三步法来自 Landman 团队对飞行员"惊讶管理"的研究。当你遭遇意外时，按 A → B → C 的顺序处理，比先试图"搞清楚发生了什么"更安全、更有效。</p>
+
+    <div style="display:grid; grid-template-columns:1fr; gap:20px; margin-top:24px;">
+
+      <div style="background:rgba(74,158,255,0.08); padding:20px; border-radius:12px;
+        border-left:4px solid #4a9eff;">
+        <h3 style="color:#4a9eff; margin:0 0 8px 0; font-weight:normal; letter-spacing:2px;">
+          A — AVIATE · 飞行操纵优先
+        </h3>
+        <p style="color:#ccc; line-height:1.8; font-size:14px; margin:0;">
+          惊讶发生时，第一反应不是"搞清楚发生了什么"，而是确保飞机处于安全飞行状态。检查俯仰、坡度、推力是否在正常范围，如有偏离则立即修正。这一步对抗的是"惊讶悖论"——高压下本能地跳过操纵去排查故障，导致飞机状态失控。
+        </p>
+      </div>
+
+      <div style="background:rgba(126,200,255,0.08); padding:20px; border-radius:12px;
+        border-left:4px solid #7ec8ff;">
+        <h3 style="color:#7ec8ff; margin:0 0 8px 0; font-weight:normal; letter-spacing:2px;">
+          B — BREATHE · 呼吸调节
+        </h3>
+        <p style="color:#ccc; line-height:1.8; font-size:14px; margin:0;">
+          在确认飞机状态稳定后，执行一次有意识的呼吸调节。吸气 4 秒、屏住 2 秒、呼气 6 秒。这一步的目的是降低生理唤醒水平，为后续的认知加工创造条件。
+        </p>
+      </div>
+
+      <div style="background:rgba(74,255,138,0.08); padding:20px; border-radius:12px;
+        border-left:4px solid #4aff8a;">
+        <h3 style="color:#4aff8a; margin:0 0 8px 0; font-weight:normal; letter-spacing:2px;">
+          C — CHECK · 检查与排查
+        </h3>
+        <p style="color:#ccc; line-height:1.8; font-size:14px; margin:0;">
+          在生理唤醒降低后，才开始系统性地排查故障、执行检查单、与机组沟通。这一步的顺序放在最后，是因为在高度唤醒状态下进行的排查容易遗漏关键步骤。
+        </p>
+      </div>
+
+      <div style="background:rgba(20,30,50,0.8); padding:20px; border-radius:12px;
+        border-left:4px solid #7ec8ff; margin-top:12px;">
+        <h3 style="color:#7ec8ff; margin:0 0 12px 0; font-weight:normal; letter-spacing:2px; font-size:15px;">
+          完整练习 · 按顺序走一遍
+        </h3>
+        <div style="text-align:center; padding:20px 0;">
+          <div id="abcPracticeCircle" style="width:150px; height:150px; margin:0 auto 16px;
+            border-radius:50%; border:3px solid #4a9eff;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            background:radial-gradient(circle, rgba(74,158,255,0.12) 0%, transparent 70%);
+            transition:all 1s ease-in-out;">
+            <div id="abcPracticeLetter" style="font-size:44px; font-weight:bold; color:#7ec8ff;
+              font-family:'Courier New', monospace; line-height:1;">A</div>
+            <div id="abcPracticeLabel" style="font-size:11px; color:#7ec8ff;
+              letter-spacing:3px; margin-top:6px;">AVIATE</div>
+          </div>
+          <p id="abcPracticeText" style="color:#ccc; min-height:36px; margin:12px 0;">
+            点击下方按钮开始练习
+          </p>
+          <button class="breathBtn" id="abcPracticeBtn" onclick="toggleABC()">开始</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 策略库 -->
+  <div class="panel">
+    <h2>五 个 重 构 策 略 包</h2>
+    <p>这五个策略来自运动心理学的自调节技术研究，可以在飞行前或压力事件后使用。</p>
+    <div class="strategyGrid">
+      <div class="strategyCard">
+        <h3>1. 目标设定</h3>
+        <p>航段开始前，给自己设一个具体目标。比如"这次航段我要在警报响后 6 秒内恢复操控"。结束后对照目标复盘，比笼统说"做好一点"更有效。</p>
+      </div>
+      <div class="strategyCard">
+        <h3>2. 可视化预演</h3>
+        <p>进入驾驶舱前，闭眼 30 秒，想象"警报响了，我先稳住姿态，再看空速"。通过预演降低实际惊讶的冲击力。</p>
+      </div>
+      <div class="strategyCard">
+        <h3>3. 自我对话</h3>
+        <p>压力下默念一句短句："先飞飞机""一次一个动作""扫视一圈"。短句比长句更容易在惊讶中调用出来。</p>
+      </div>
+      <div class="strategyCard">
+        <h3>4. 赛前仪式</h3>
+        <p>每次航段开始前，做一套固定的准备动作：深呼吸三次、检查仪表、握杆力度确认。固定的仪式让进入训练状态更快。</p>
+      </div>
+      <div class="strategyCard">
+        <h3>5. 正念觉察</h3>
+        <p>不做飞行训练时，只做 5 分钟的呼吸觉察练习。不评判、不追求效果，只是观察自己的呼吸。这是恢复与专注的基础。</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== 标签切换 ==========
+function switchTab(i, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel')[i].classList.add('active');
+}
+
+// ========== 呼吸节拍 ==========
+let breathTimer = null;
+let breathing = false;
+function toggleBreath() {
+  const ring = document.getElementById('breathRing');
+  const btn = document.getElementById('breathToggleBtn');
+  if (breathing) {
+    clearTimeout(breathTimer);
+    breathing = false;
+    ring.className = '';
+    ring.textContent = '吸 气';
+    btn.textContent = '开始';
+    return;
+  }
+  breathing = true;
+  btn.textContent = '停止';
+  let phase = 0;
+  function next() {
+    if (!breathing) return;
+    if (phase === 0) {
+      ring.className = 'inhale'; ring.textContent = '吸 气';
+      breathTimer = setTimeout(() => { phase = 1; next(); }, 4000);
+    } else if (phase === 1) {
+      ring.className = 'hold'; ring.textContent = '屏 住';
+      breathTimer = setTimeout(() => { phase = 2; next(); }, 2000);
+    } else {
+      ring.className = 'exhale'; ring.textContent = '呼 气';
+      breathTimer = setTimeout(() => { phase = 0; next(); }, 6000);
+    }
+  }
+  next();
+}
+
+// ========== 情绪命名 ==========
+const emotions = [
+  { name: "烦躁", reply: "烦躁常常是「我想快点结束但结束不了」的信号。承认它，它就不会继续长大。" },
+  { name: "焦虑", reply: "焦虑是身体在提醒你「我在意这件事」。它在，说明你在乎，不代表你不行。" },
+  { name: "疲惫", reply: "疲惫不是软弱。它只是在说「我需要停一会儿」。停一会儿，不是放弃。" },
+  { name: "愤怒", reply: "愤怒常常是边界被触碰后的第一反应。先让它待在那儿，不用立刻做什么。" },
+  { name: "无力", reply: "无力感出现的时候，往往不是你真的做不了，而是你暂时看不见选择。" },
+  { name: "委屈", reply: "委屈是「我做了很多但没被看见」。先对自己说一句「我看见了」，再想别的。" },
+  { name: "平静", reply: "能感到平静，是一种能力。记住这个感觉，它会成为你的储备。" },
+  { name: "期待", reply: "期待是好的。它说明你对接下来还有想象，还有愿望。" }
+];
+
+function initEmotions() {
+  const grid = document.getElementById('emotionGrid');
+  emotions.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emotionBtn';
+    btn.textContent = e.name;
+    btn.onclick = () => {
+      document.querySelectorAll('.emotionBtn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('emotionReply').textContent = e.reply;
+    };
+    grid.appendChild(btn);
+  });
+}
+initEmotions();
+
+// ========== 认知重评 ==========
+async function doReview() {
+  const thought = document.getElementById('thoughtInput').value.trim();
+  const reply = document.getElementById('reviewReply');
+  if (!thought) { alert('先写下一句吧'); return; }
+
+  const API_KEY = localStorage.getItem('deepseekKey') || '';
+  if (!API_KEY) {
+    reply.textContent = '（未检测到 API key，请先在 ai-test.html 里测试一次）';
+    return;
+  }
+
+  reply.textContent = '正在回应……';
+
+  const systemPrompt = `你是飞行员"心航 MindFlight"平台的AI教练，代号"重构引导者"。飞行员写下一句让他不舒服的想法，你要用认知重评的方式陪他换一个角度，但不否定他的感受。要求：先承认他的感受（一句话），再温和地提出一个替代视角（一到两句）。不要给建议，不要贴标签，不使用"应该""必须"。总字数不超过 120 字。`;
+
+  try {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + API_KEY
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: '他写道：' + thought }
+        ],
+        max_tokens: 300
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    reply.textContent = data.choices[0].message.content;
+  } catch (err) {
+    reply.textContent = '回应失败：' + err.message;
+  }
+}
+</script>
+</body>
+</html>

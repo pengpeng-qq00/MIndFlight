@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>心航 · 航线地图</title>
+<style>
+html, body { margin:0; min-height:100vh; background:#050810;
+  font-family:sans-serif; color:#eee; overflow-x:hidden; }
+
+#starfield { position:fixed; top:0; left:0; width:100%; height:100%;
+  background:radial-gradient(ellipse at bottom, #0a1220 0%, #050810 100%);
+  z-index:0; }
+
+.star { position:absolute; background:#fff; border-radius:50%;
+  animation:twinkle 3s infinite; }
+@keyframes twinkle { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
+
+#header { position:relative; z-index:2; padding:30px 40px 20px;
+  display:flex; justify-content:space-between; align-items:flex-start; }
+#header h1 { color:#4a9eff; font-weight:normal; letter-spacing:6px;
+  font-size:22px; margin:0 0 16px 0; }
+
+#topBtns { display:flex; gap:10px; }
+#topBtns button { padding:6px 14px; background:transparent;
+  border-radius:6px; font-size:12px; cursor:pointer;
+  transition:all 0.2s; letter-spacing:1px; }
+#resetBtn { color:#555; border:1px solid #2a3a55; }
+#resetBtn:hover { color:#888; border-color:#4a3a3a; }
+#classroomBtn { color:#4a9eff; border:1px solid #2a3a55; }
+#classroomBtn:hover { color:#7ec8ff; border-color:#4a9eff; }
+#challengeBtn { color:#ffcc00; border:1px solid #4a3a0a; }
+#challengeBtn:hover { color:#ffdd44; border-color:#ffcc00; }
+
+#riBox { text-align:right; }
+#riBox .label { color:#666; font-size:12px; letter-spacing:2px; }
+#riBox .value { color:#4a9eff; font-size:32px; font-weight:bold;
+  font-family:'Courier New', monospace; text-shadow:0 0 20px rgba(74,158,255,0.5); }
+
+#mapArea { position:relative; z-index:2; padding:0 60px 180px;
+  max-width:900px; margin:0 auto; }
+
+#routeSvg { width:100%; height:auto; display:block; }
+
+.waypoint-group { cursor:pointer; transition:opacity 0.3s; }
+.waypoint-group:hover { opacity:0.8; }
+.waypoint-group.locked { cursor:not-allowed; opacity:0.4; }
+
+.waypoint-label { fill:#888; font-size:12px; font-family:sans-serif;
+  text-anchor:middle; }
+.waypoint-label.active { fill:#4a9eff; font-weight:bold; }
+.waypoint-label.done { fill:#4aff8a; }
+
+#infoPanel { position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+  background:rgba(20,30,50,0.95); padding:20px 40px; border-radius:14px;
+  border:1px solid #4a9eff; box-shadow:0 0 40px rgba(74,158,255,0.3);
+  text-align:center; z-index:10; min-width:340px; }
+#infoPanel h3 { color:#4a9eff; margin:0 0 8px 0; font-weight:normal;
+  letter-spacing:2px; font-size:16px; }
+#infoPanel p { color:#aaa; font-size:13px; margin:0 0 16px 0; line-height:1.6; }
+#startBtn { padding:12px 40px; background:#4a9eff; color:#fff; border:none;
+  border-radius:8px; font-size:15px; cursor:pointer; letter-spacing:2px; }
+#startBtn:hover { background:#5fb0ff; }
+#startBtn:disabled { background:#2a3a55; cursor:not-allowed; }
+
+#tip { position:fixed; bottom:6px; left:50%; transform:translateX(-50%);
+  color:#444; font-size:11px; letter-spacing:1px; z-index:10; }
+  #helpBtn {
+  color:#ff8888 !important;
+  border:1px solid #4a1a1a !important;
+  background:transparent;
+}
+#helpBtn:hover {
+  color:#ffaaaa !important;
+  border-color:#ff6666 !important;
+  background:rgba(255,100,100,0.05);
+}
+</style>
+</head>
+<body>
+
+<div id="starfield"></div>
+
+<div id="header">
+  <div>
+    <h1>航 线 地 图</h1>
+    <div id="topBtns">
+      <button id="resetBtn" onclick="resetAll()">重置全部进度</button>
+      <button id="classroomBtn" onclick="window.location.href='./classroom.html'">情绪调节课堂</button>
+      <button id="challengeBtn" onclick="window.location.href='./challenge.html'">挑战航段</button>
+      <button id="helpBtn" onclick="window.location.href='./help.html'">给予的支持</button>
+    </div>
+  </div>
+  <div id="riBox">
+    <div class="label">弹性指数 RI</div>
+    <div class="value" id="riValue">--</div>
+  </div>
+</div>
+
+<div id="mapArea">
+  <svg id="routeSvg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="routeGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#1a4a8a" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#4a9eff" stop-opacity="0.8"/>
+      </linearGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    <g id="routePath"></g>
+    <g id="waypoints"></g>
+  </svg>
+</div>
+
+<div id="infoPanel">
+  <h3 id="panelTitle">下一航点</h3>
+  <p id="panelDesc">点击航线上的光点，开始今天的训练。</p>
+  <button id="startBtn" onclick="startTraining()">开始训练</button>
+</div>
+
+<div id="tip">每完成一次航段，航线向前延伸一个航点</div>
+
+<script>
+const allWaypoints = [
+  { id: 0, x: 120, y: 520, name: "第一次起飞",
+    desc: "基础压力觉察与情绪命名。低强度压力事件。", difficulty: "入门" },
+  { id: 1, x: 220, y: 460, name: "雷雨云层",
+    desc: "闪电与雷声中的基础操控。低强度压力事件。", difficulty: "入门" },
+  { id: 2, x: 320, y: 420, name: "告警灯亮",
+    desc: "单次告警下的呼吸调节。低强度压力事件。", difficulty: "入门" },
+  { id: 3, x: 400, y: 340, name: "发动机失效",
+    desc: "认知重评练习。中等强度压力事件。", difficulty: "进阶" },
+  { id: 4, x: 480, y: 280, name: "风切变",
+    desc: "应对突发气象。中等强度压力事件。", difficulty: "进阶" },
+  { id: 5, x: 560, y: 220, name: "仪表失效",
+    desc: "在信息缺失中保持判断。中等强度压力事件。", difficulty: "进阶" },
+  { id: 6, x: 640, y: 160, name: "多重告警",
+    desc: "同时应对多个压力源。高强度压力事件。", difficulty: "强化" },
+  { id: 7, x: 700, y: 100, name: "夜航归途",
+    desc: "综合运用全部重构策略。高强度压力事件。", difficulty: "强化" }
+];
+
+let progress = JSON.parse(localStorage.getItem('mf_progress') || '{"completed":0}');
+const completed = progress.completed;
+const riValue = parseInt(localStorage.getItem('lastRI') || '80');
+
+function initStars() {
+  const sf = document.getElementById('starfield');
+  for (let i = 0; i < 120; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 2 + 0.5;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.animationDelay = Math.random() * 3 + 's';
+    sf.appendChild(star);
+  }
+}
+
+function drawRoute() {
+  const pathGroup = document.getElementById('routePath');
+  let d = '';
+  allWaypoints.forEach((wp, i) => {
+    if (i === 0) d += `M ${wp.x} ${wp.y}`;
+    else {
+      const prev = allWaypoints[i-1];
+      const cx = (prev.x + wp.x) / 2 + (Math.random() - 0.5) * 30;
+      const cy = (prev.y + wp.y) / 2 + (Math.random() - 0.5) * 30;
+      d += ` Q ${cx} ${cy} ${wp.x} ${wp.y}`;
+    }
+  });
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('stroke', 'url(#routeGrad)');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke-dasharray', '4 4');
+  path.setAttribute('opacity', '0.6');
+  pathGroup.appendChild(path);
+}
+
+function drawWaypoints() {
+  const wpGroup = document.getElementById('waypoints');
+  wpGroup.innerHTML = '';
+
+  allWaypoints.forEach((wp, i) => {
+    const isDone = i < completed;
+    const isCurrent = i === completed;
+    const isLocked = i > completed;
+
+    let color, glow, r, cls;
+    if (isDone) { color = '#4aff8a'; glow = '#4aff8a'; r = 10; cls = 'done'; }
+    else if (isCurrent) { color = '#4a9eff'; glow = '#4a9eff'; r = 13; cls = 'active'; }
+    else { color = '#2a3a55'; glow = '#2a3a55'; r = 8; cls = 'locked'; }
+
+    if (!isLocked) {
+      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      halo.setAttribute('cx', wp.x);
+      halo.setAttribute('cy', wp.y);
+      halo.setAttribute('r', r + 8);
+      halo.setAttribute('fill', glow);
+      halo.setAttribute('opacity', '0.15');
+      if (isCurrent) {
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'opacity');
+        animate.setAttribute('values', '0.1;0.3;0.1');
+        animate.setAttribute('dur', '2s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        halo.appendChild(animate);
+      }
+      wpGroup.appendChild(halo);
+    }
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', wp.x);
+    circle.setAttribute('cy', wp.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', color);
+    circle.setAttribute('filter', isLocked ? '' : 'url(#glow)');
+    circle.setAttribute('class', 'waypoint-group ' + cls);
+    circle.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+    circle.addEventListener('click', () => selectWaypoint(i));
+    wpGroup.appendChild(circle);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', wp.x);
+    label.setAttribute('y', wp.y + r + 22);
+    label.setAttribute('class', 'waypoint-label ' + cls);
+    label.textContent = wp.name;
+    wpGroup.appendChild(label);
+  });
+}
+
+let selectedWP = completed;
+function selectWaypoint(i) {
+  if (i > completed) {
+    document.getElementById('panelTitle').textContent = '航点未解锁';
+    document.getElementById('panelDesc').textContent =
+      '先完成前面的航点，航线才会延伸到这里。';
+    document.getElementById('startBtn').disabled = true;
+    selectedWP = null;
+    return;
+  }
+  if (i < completed) {
+    document.getElementById('panelTitle').textContent = '已完成 · ' + allWaypoints[i].name;
+    document.getElementById('panelDesc').textContent =
+      '这个航点已经飞过了。想重新练一次也可以。';
+    document.getElementById('startBtn').disabled = false;
+    selectedWP = i;
+    return;
+  }
+  document.getElementById('panelTitle').textContent = '下一航点 · ' + allWaypoints[i].name;
+  document.getElementById('panelDesc').textContent = allWaypoints[i].desc;
+  document.getElementById('startBtn').disabled = false;
+  selectedWP = i;
+}
+
+function startTraining() {
+  if (selectedWP === null) return;
+  localStorage.setItem('currentWaypoint', selectedWP);
+  localStorage.removeItem('challengeConfig');  // 主线模式清掉挑战配置
+  window.location.href = './cockpit.html';
+}
+
+function resetAll() {
+  if (!confirm('确定要重置全部训练进度吗？这将清空已完成的航点和数据。')) return;
+  localStorage.removeItem('mf_progress');
+  localStorage.removeItem('lastRI');
+  localStorage.removeItem('logs');
+  localStorage.removeItem('challengeConfig');
+  location.reload();
+}
+
+initStars();
+drawRoute();
+drawWaypoints();
+selectWaypoint(completed);
+
+if (riValue > 0) {
+  document.getElementById('riValue').textContent = riValue;
+} else {
+  document.getElementById('riValue').textContent = '--';
+}
+</script>
+</body>
+</html>

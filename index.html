@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>心航 MindFlight</title>
+<style>
+html, body { margin:0; overflow:hidden; background:#000; font-family:sans-serif; }
+
+#intro {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  background:#000; z-index:200; transition:opacity 1.5s;
+}
+#intro h1 {
+  color:#4a9eff; font-size:32px; letter-spacing:8px; font-weight:normal;
+  opacity:0; animation:fadeIn 2s forwards;
+}
+#intro p {
+  color:#666; font-size:14px; margin-top:24px; letter-spacing:2px;
+  opacity:0; animation:fadeIn 2s 1s forwards;
+}
+@keyframes fadeIn { to { opacity:1; } }
+
+#coachWrap {
+  position:fixed; left:-320px; bottom:60px; width:240px;
+  transition:left 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index:150;
+}
+#coachWrap.slide-in { left:50px; }
+
+.coach-avatar {
+  width:120px; height:120px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #4a9eff, #1a3a6a);
+  margin:0 auto; position:relative;
+  box-shadow:0 0 40px rgba(74,158,255,0.5);
+  border:3px solid #2a5a9a;
+}
+.coach-avatar::before {
+  content:''; position:absolute; top:28%; left:50%; transform:translateX(-50%);
+  width:44px; height:44px; border-radius:50%;
+  background:rgba(255,255,255,0.15);
+}
+.coach-avatar::after {
+  content:''; position:absolute; bottom:18%; left:50%; transform:translateX(-50%);
+  width:60px; height:30px; border-radius:30px 30px 0 0;
+  background:rgba(255,255,255,0.1);
+}
+.coach-name { text-align:center; color:#7ec8ff; font-size:13px;
+  margin-top:14px; letter-spacing:2px; }
+.coach-role { text-align:center; color:#555; font-size:11px;
+  margin-top:4px; letter-spacing:1px; }
+
+#dialog {
+  position:fixed; left:320px; bottom:130px; max-width:460px;
+  background:rgba(20,30,50,0.92); color:#eee;
+  padding:22px 26px; border-radius:14px;
+  font-size:15px; line-height:1.9;
+  opacity:0; transition:opacity 0.8s;
+  z-index:150; border-left:3px solid #4a9eff;
+  box-shadow:0 4px 30px rgba(0,0,0,0.5);
+}
+#dialog.show { opacity:1; }
+
+#startBtn {
+  position:fixed; bottom:50px; left:50%; transform:translateX(-50%);
+  padding:14px 44px; background:#4a9eff; color:#fff;
+  border:none; border-radius:8px; font-size:16px;
+  letter-spacing:2px; cursor:pointer;
+  opacity:0; pointer-events:none;
+  transition:opacity 1s; z-index:150;
+}
+#startBtn.show { opacity:1; pointer-events:auto; }
+#startBtn:hover { background:#5fb0ff; }
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <h1>心 航 M I N D F L I G H T</h1>
+  <p>正在启动训练系统……</p>
+</div>
+
+<div id="coachWrap">
+  <div class="coach-avatar"></div>
+  <div class="coach-name">AI 教练</div>
+  <div class="coach-role">重构引导者</div>
+</div>
+
+<div id="dialog"></div>
+<button id="startBtn" onclick="goNext()">开 始 训 练</button>
+
+<script>
+const dialogText = "你好，我是你的 AI 教练，接下来的训练旅程会由我陪你一起完成。在我们起飞之前——请戴上耳机，调到一个不会被打扰的角落，因为从下一秒开始，你听到的每一声警报、每一阵风，都是真的。在我们开始之前，先记住三个字母：A 稳住操纵，B 调节呼吸，C 检查仪表。它们会一直陪着你飞。";
+let idx = 0;
+let engineAudio = null;
+
+window.addEventListener('load', () => {
+  engineAudio = new Audio('./sounds/engine.mp3');
+  engineAudio.loop = true;
+  engineAudio.volume = 0.35;
+
+  setTimeout(() => {
+    const intro = document.getElementById('intro');
+    intro.style.opacity = 0;
+    setTimeout(() => intro.style.display = 'none', 1500);
+
+    setTimeout(() => {
+      document.getElementById('coachWrap').classList.add('slide-in');
+      setTimeout(() => {
+        document.getElementById('dialog').classList.add('show');
+        typeWriter();
+      }, 600);
+    }, 400);
+  }, 3000);
+});
+
+function startEngine() {
+  if (engineAudio && engineAudio.paused) {
+    engineAudio.play().catch(e => console.warn('引擎声播放失败：', e));
+  }
+}
+document.addEventListener('click', startEngine, {once:true});
+document.addEventListener('keydown', startEngine, {once:true});
+
+function typeWriter() {
+  const el = document.getElementById('dialog');
+  if (idx < dialogText.length) {
+    el.textContent += dialogText.charAt(idx);
+    idx++;
+    setTimeout(typeWriter, 50);
+  } else {
+    document.getElementById('startBtn').classList.add('show');
+  }
+}
+
+function goNext() {
+  window.location.href = './assess.html';
+}
+</script>
+</body>
+</html>
